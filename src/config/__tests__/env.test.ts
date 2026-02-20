@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildDSNFromEnvParams, resolveDSN, resolveId } from '../env.js';
+import { buildDSNFromEnvParams, resolveDSN, resolveId, resolveSchema } from '../env.js';
 
 // Mock toml-loader to prevent it from loading dbhub.toml during tests
 vi.mock('../toml-loader.js', () => ({
@@ -20,6 +20,7 @@ describe('Environment Configuration Tests', () => {
     delete process.env.DB_NAME;
     delete process.env.DSN;
     delete process.env.ID;
+    delete process.env.SCHEMA;
   });
 
   afterEach(() => {
@@ -348,6 +349,36 @@ describe('Environment Configuration Tests', () => {
       expect(result!.sources).toHaveLength(1);
       expect(result!.sources[0].type).toBe('postgres');
       expect(result!.sources[0].dsn).toBe('postgres://user:my@pass:word@localhost:5432/testdb');
+    });
+  });
+
+  describe('resolveSchema', () => {
+    it('should return null when schema is not provided', () => {
+      const result = resolveSchema();
+
+      expect(result).toBeNull();
+    });
+
+    it('should resolve schema from environment variable', () => {
+      process.env.SCHEMA = 'my_schema';
+
+      const result = resolveSchema();
+
+      expect(result).toEqual({
+        schema: 'my_schema',
+        source: 'environment variable'
+      });
+    });
+
+    it('should handle schema names with underscores and dots', () => {
+      process.env.SCHEMA = 'app.staging_v2';
+
+      const result = resolveSchema();
+
+      expect(result).toEqual({
+        schema: 'app.staging_v2',
+        source: 'environment variable'
+      });
     });
   });
 

@@ -480,17 +480,19 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
     let success = true;
     let errorMessage: string | undefined;
 
+    // Auto-apply configured default schema when the user doesn't specify one
+    const sourceConfig = ConnectorManager.getSourceConfig(sourceId);
+    const effectiveSchema = schema ?? sourceConfig?.schema;
+
     try {
       // Ensure source is connected (handles lazy connections)
       await ConnectorManager.ensureConnected(sourceId);
 
       const connector = ConnectorManager.getCurrentConnector(sourceId);
 
-      // Tool is already registered, so it's enabled (no need to check)
-
       // Validate table parameter
       if (table) {
-        if (!schema) {
+        if (!effectiveSchema) {
           success = false;
           errorMessage = "The 'table' parameter requires 'schema' to be specified";
           return createToolErrorResponse(errorMessage, "SCHEMA_REQUIRED");
@@ -502,12 +504,12 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
         }
       }
 
-      // Validate schema if provided
-      if (schema) {
+      // Validate schema if provided (explicit or from config)
+      if (effectiveSchema) {
         const schemas = await connector.getSchemas();
-        if (!schemas.includes(schema)) {
+        if (!schemas.includes(effectiveSchema)) {
           success = false;
-          errorMessage = `Schema '${schema}' does not exist. Available schemas: ${schemas.join(", ")}`;
+          errorMessage = `Schema '${effectiveSchema}' does not exist. Available schemas: ${schemas.join(", ")}`;
           return createToolErrorResponse(errorMessage, "SCHEMA_NOT_FOUND");
         }
       }
@@ -517,19 +519,23 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
       // Route to appropriate search function
       switch (object_type) {
         case "schema":
-          results = await searchSchemas(connector, pattern, detail_level, limit);
+          if (effectiveSchema) {
+            results = await searchSchemas(connector, effectiveSchema, detail_level, limit);
+          } else {
+            results = await searchSchemas(connector, pattern, detail_level, limit);
+          }
           break;
         case "table":
-          results = await searchTables(connector, pattern, schema, detail_level, limit);
+          results = await searchTables(connector, pattern, effectiveSchema, detail_level, limit);
           break;
         case "column":
-          results = await searchColumns(connector, pattern, schema, table, detail_level, limit);
+          results = await searchColumns(connector, pattern, effectiveSchema, table, detail_level, limit);
           break;
         case "procedure":
-          results = await searchProcedures(connector, pattern, schema, detail_level, limit);
+          results = await searchProcedures(connector, pattern, effectiveSchema, detail_level, limit);
           break;
         case "index":
-          results = await searchIndexes(connector, pattern, schema, table, detail_level, limit);
+          results = await searchIndexes(connector, pattern, effectiveSchema, table, detail_level, limit);
           break;
         default:
           success = false;
@@ -540,7 +546,7 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
       return createToolSuccessResponse({
         object_type,
         pattern,
-        schema,
+        schema: effectiveSchema,
         table,
         detail_level,
         count: results.length,
@@ -560,7 +566,7 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
         {
           sourceId: effectiveSourceId,
           toolName: effectiveSourceId === "default" ? "search_objects" : `search_objects_${effectiveSourceId}`,
-          sql: `search_objects(object_type=${object_type}, pattern=${pattern}, schema=${schema || "all"}, table=${table || "all"}, detail_level=${detail_level})`,
+          sql: `search_objects(object_type=${object_type}, pattern=${pattern}, schema=${effectiveSchema || "all"}, table=${table || "all"}, detail_level=${detail_level})`,
         },
         startTime,
         extra,

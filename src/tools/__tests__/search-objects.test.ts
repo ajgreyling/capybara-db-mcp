@@ -33,10 +33,12 @@ const parseToolResponse = (response: any) => {
 describe('search_database_objects tool', () => {
   let mockConnector: Connector;
   const mockGetCurrentConnector = vi.mocked(ConnectorManager.getCurrentConnector);
+  const mockGetSourceConfig = vi.mocked(ConnectorManager.getSourceConfig);
 
   beforeEach(() => {
     mockConnector = createMockConnector('sqlite');
     mockGetCurrentConnector.mockReturnValue(mockConnector);
+    mockGetSourceConfig.mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -829,6 +831,89 @@ describe('search_database_objects tool', () => {
       );
       const asteriskParsed = parseToolResponse(asteriskResult);
       expect(asteriskParsed.data.results.map((r: any) => r.name)).toEqual(['user*data']);
+    });
+  });
+
+  describe('configured default schema', () => {
+    beforeEach(() => {
+      vi.mocked(mockConnector.getSchemas).mockResolvedValue(['public', 'app_schema', 'other']);
+    });
+
+    it('should auto-filter tables to configured schema when user omits schema', async () => {
+      mockGetSourceConfig.mockReturnValue({ id: 'default', type: 'postgres', schema: 'app_schema' } as any);
+      vi.mocked(mockConnector.getTables).mockImplementation(async (schema) => {
+        if (schema === 'app_schema') return ['users', 'orders'];
+        return ['other_table'];
+      });
+
+      const handler = createSearchDatabaseObjectsToolHandler();
+      const result = await handler(
+        { object_type: 'table', pattern: '%', detail_level: 'names' },
+        null
+      );
+
+      const parsed = parseToolResponse(result);
+      expect(parsed.data.schema).toBe('app_schema');
+      expect(parsed.data.results.map((r: any) => r.name)).toEqual(['users', 'orders']);
+    });
+
+    it('should allow user to override configured schema', async () => {
+      mockGetSourceConfig.mockReturnValue({ id: 'default', type: 'postgres', schema: 'app_schema' } as any);
+      vi.mocked(mockConnector.getTables).mockImplementation(async (schema) => {
+        if (schema === 'public') return ['migrations'];
+        return ['users'];
+      });
+
+      const handler = createSearchDatabaseObjectsToolHandler();
+      const result = await handler(
+        { object_type: 'table', pattern: '%', schema: 'public', detail_level: 'names' },
+        null
+      );
+
+      const parsed = parseToolResponse(result);
+      expect(parsed.data.schema).toBe('public');
+      expect(parsed.data.results.map((r: any) => r.name)).toEqual(['migrations']);
+    });
+
+    it('should filter schema search to configured schema', async () => {
+      mockGetSourceConfig.mockReturnValue({ id: 'default', type: 'postgres', schema: 'app_schema' } as any);
+
+      const handler = createSearchDatabaseObjectsToolHandler();
+      const result = await handler(
+        { object_type: 'schema', pattern: '%', detail_level: 'names' },
+        null
+      );
+
+      const parsed = parseToolResponse(result);
+      expect(parsed.data.results.map((r: any) => r.name)).toEqual(['app_schema']);
+    });
+
+    it('should return error when configured schema does not exist', async () => {
+      mockGetSourceConfig.mockReturnValue({ id: 'default', type: 'postgres', schema: 'nonexistent' } as any);
+
+      const handler = createSearchDatabaseObjectsToolHandler();
+      const result = await handler(
+        { object_type: 'table', pattern: '%', detail_level: 'names' },
+        null
+      );
+
+      expect(result.isError).toBe(true);
+      const parsed = parseToolResponse(result);
+      expect(parsed.code).toBe('SCHEMA_NOT_FOUND');
+    });
+
+    it('should not filter when no configured schema and user omits schema', async () => {
+      mockGetSourceConfig.mockReturnValue({ id: 'default', type: 'postgres' } as any);
+      vi.mocked(mockConnector.getTables).mockResolvedValue(['t1']);
+
+      const handler = createSearchDatabaseObjectsToolHandler();
+      const result = await handler(
+        { object_type: 'table', pattern: '%', detail_level: 'names' },
+        null
+      );
+
+      const parsed = parseToolResponse(result);
+      expect(parsed.data.schema).toBeUndefined();
     });
   });
 });

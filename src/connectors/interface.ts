@@ -66,7 +66,8 @@ export interface ConnectorConfig {
    * Note: Application-level validation is done via ExecuteOptions.readonly
    */
   readonly?: boolean;
-  // Future database-specific options can be added here as optional fields
+  /** Default schema (PostgreSQL: sets search_path on connection) */
+  schema?: string;
 }
 
 /**

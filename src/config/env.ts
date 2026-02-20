@@ -379,6 +379,24 @@ export function resolveId(): { id: string; source: string } | null {
 }
 
 /**
+ * Resolve schema from command line args or environment variables
+ * Returns schema name or null if not provided
+ */
+export function resolveSchema(): { schema: string; source: string } | null {
+  const args = parseCommandLineArgs();
+
+  if (args.schema) {
+    return { schema: args.schema, source: "command line argument" };
+  }
+
+  if (process.env.SCHEMA) {
+    return { schema: process.env.SCHEMA, source: "environment variable" };
+  }
+
+  return null;
+}
+
+/**
  * Resolve SSH tunnel configuration from command line args or environment variables
  * Returns SSH config or null if no SSH options are provided
  */
@@ -595,6 +613,12 @@ export async function resolveSourceConfigs(): Promise<{ sources: SourceConfig[];
       source.ssh_password = sshResult.config.password;
       source.ssh_key = sshResult.config.privateKey;
       source.ssh_passphrase = sshResult.config.passphrase;
+    }
+
+    // Add schema if available
+    const schemaData = resolveSchema();
+    if (schemaData) {
+      source.schema = schemaData.schema;
     }
 
     // Add init script for demo mode

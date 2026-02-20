@@ -219,6 +219,10 @@ export class ConnectorManager {
     if (source.readonly !== undefined) {
       config.readonly = source.readonly;
     }
+    // Pass default schema (PostgreSQL: sets search_path)
+    if (source.schema !== undefined) {
+      config.schema = source.schema;
+    }
 
     // Connect to the database with config and optional init script
     await connector.connect(actualDSN, source.init_script, config);

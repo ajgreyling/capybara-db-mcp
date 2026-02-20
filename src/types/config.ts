@@ -43,6 +43,7 @@ export interface SourceConfig extends ConnectionParams, SSHConfig {
   id: string;
   description?: string; // Human-readable description of this data source
   dsn?: string;
+  schema?: string; // Default schema (sets search_path for PostgreSQL, filters search_objects)
   connection_timeout?: number; // Connection timeout in seconds
   query_timeout?: number; // Query timeout in seconds (PostgreSQL, MySQL, MariaDB, SQL Server)
   init_script?: string; // Optional SQL script to run on connection (for demo mode or initialization)

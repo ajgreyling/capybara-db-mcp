@@ -127,6 +127,11 @@ export class PostgresConnector implements Connector {
         poolConfig.options = (poolConfig.options || '') + ' -c default_transaction_read_only=on';
       }
 
+      // Set search_path when a default schema is configured
+      if (config?.schema) {
+        poolConfig.options = (poolConfig.options || '') + ` -c search_path=${config.schema},public`;
+      }
+
       this.pool = new Pool(poolConfig);
 
       // Test the connection
