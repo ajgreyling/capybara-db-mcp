@@ -14,9 +14,9 @@ git remote set-url origin https://github.com/ajgreyling/safe-sql-mcp.git
 <p align="center">
 <a href="https://dbhub.ai/" target="_blank">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/bytebase/dbhub/main/docs/images/logo/full-dark.svg" width="75%">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/bytebase/dbhub/main/docs/images/logo/full-light.svg" width="75%">
-  <img src="https://raw.githubusercontent.com/bytebase/dbhub/main/docs/images/logo/full-light.svg" width="75%" alt="DBHub Logo">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ajgreyling/safe-sql-mcp/main/docs/images/logo/full-dark.svg" width="75%">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ajgreyling/safe-sql-mcp/main/docs/images/logo/full-light.svg" width="75%">
+  <img src="https://raw.githubusercontent.com/ajgreyling/safe-sql-mcp/main/docs/images/logo/full-light.svg" width="75%" alt="DBHub Logo">
 </picture>
 </a>
 </p>
