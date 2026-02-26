@@ -24,7 +24,7 @@ describe('Data Sources API Integration Tests', () => {
     // Initialize ConnectorManager with readonly-maxrows fixture
     // This fixture provides 3 SQLite sources with different execution options:
     // - readonly_limited: readonly=true, max_rows=100
-    // - writable_limited: readonly=false, max_rows=500
+    // - writable_limited: readonly=true, max_rows=500 (this fork is always read-only)
     // - writable_unlimited: default tools (readonly=true), no max_rows
     manager = await setupManagerWithFixture(FIXTURES.READONLY_MAXROWS);
 
@@ -98,9 +98,9 @@ describe('Data Sources API Integration Tests', () => {
       expect(firstExecuteSql?.readonly).toBe(true);
       expect(firstExecuteSql?.max_rows).toBe(100);
 
-      // Second source has execute_sql tool with different settings
+      // Second source has execute_sql tool with different settings (max_rows only)
       const secondExecuteSql = sources[1].tools.find(t => t.name.startsWith('execute_sql'));
-      expect(secondExecuteSql?.readonly).toBe(false);
+      expect(secondExecuteSql?.readonly).toBe(true);
       expect(secondExecuteSql?.max_rows).toBe(500);
 
       // Third source gets default tools (read-only by default)

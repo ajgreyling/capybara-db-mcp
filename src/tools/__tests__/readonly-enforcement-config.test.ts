@@ -42,7 +42,7 @@ describe('readonly enforcement from config (destructive SQL not passed for execu
     vi.clearAllMocks();
   });
 
-  describe('CLI default config (single-DSN without --destructive)', () => {
+  describe('CLI default config (single-DSN)', () => {
     it('should reject UPDATE, DELETE, INSERT and not pass them to connector', async () => {
       const mockConnector = createMockConnector('default');
       vi.mocked(ConnectorManager.getCurrentConnector).mockReturnValue(mockConnector);

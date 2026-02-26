@@ -174,20 +174,6 @@ describe('execute-sql tool', () => {
   describe('readonly per-source isolation', () => {
     // Verifies readonly is enforced per-source from tool registry; default (undefined) is read-only
 
-    it('should allow writes only when readonly: false', async () => {
-      mockGetToolRegistry.mockReturnValue({
-        getBuiltinToolConfig: vi.fn().mockReturnValue({ readonly: false }),
-      } as any);
-      const mockResult: SQLResult = { rows: [], rowCount: 0 };
-      vi.mocked(mockConnector.executeSQL).mockResolvedValue(mockResult);
-
-      const handler = createExecuteSqlToolHandler('writable_source');
-      const result = await handler({ sql: "INSERT INTO users (name) VALUES ('test')" }, null);
-
-      expect(parseToolResponse(result).success).toBe(true);
-      expect(mockConnector.executeSQL).toHaveBeenCalled();
-    });
-
     it('should reject writes when readonly is undefined (default read-only)', async () => {
       mockGetToolRegistry.mockReturnValue({
         getBuiltinToolConfig: vi.fn().mockReturnValue({}),

@@ -26,7 +26,14 @@ export function parseCommandLineArgs() {
       const parts = arg.substring(2).split("=");
       const key = parts[0];
 
-      // Fail immediately on deprecated flags
+      // Fail immediately on deprecated/removed flags
+      if (key === "destructive") {
+        console.error("\nERROR: --destructive flag is not supported.");
+        console.error("This fork (safe-sql-mcp) is unconditionally read-only.");
+        console.error("Write operations (UPDATE, DELETE, INSERT, etc.) are never allowed.\n");
+        process.exit(1);
+      }
+
       if (key === "max-rows") {
         console.error("\nERROR: --max-rows flag is no longer supported.");
         console.error("Use dbhub.toml with [[tools]] configuration instead:\n");
@@ -135,16 +142,6 @@ export function loadEnvFiles(): string | null {
 export function isDemoMode(): boolean {
   const args = parseCommandLineArgs();
   return args.demo === "true";
-}
-
-/**
- * Resolve destructive (write) mode from command line (--destructive or --destructive=true).
- * When true, execute_sql allows write operations in single-DSN mode. Default is read-only.
- */
-export function resolveDestructive(): boolean {
-  const args = parseCommandLineArgs();
-  const v = args.destructive;
-  return v === "true" || v === "1";
 }
 
 /**
@@ -535,7 +532,6 @@ export async function resolveSourceConfigs(): Promise<{ sources: SourceConfig[];
           "Either remove the --id flag or use command-line DSN configuration instead."
         );
       }
-      // Note: default is read-only; --destructive only affects single-DSN mode; TOML uses [[tools]] readonly
       return tomlConfig;
     }
   }
@@ -623,10 +619,9 @@ export async function resolveSourceConfigs(): Promise<{ sources: SourceConfig[];
       source.init_script = getSqliteInMemorySetupSql();
     }
 
-    // Default is read-only; only --destructive allows writes. Always pass explicit tools.
-    const allowWrites = resolveDestructive();
+    // Always read-only; this fork unconditionally disallows write operations.
     const tools: ToolConfig[] = [
-      { name: "execute_sql", source: sourceId, readonly: !allowWrites },
+      { name: "execute_sql", source: sourceId, readonly: true },
       { name: "search_objects", source: sourceId },
     ];
 

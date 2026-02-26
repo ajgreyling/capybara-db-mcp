@@ -21,7 +21,7 @@ database = ":memory:"
 [[tools]]
 name = "execute_sql"
 source = "writable_limited"
-readonly = false
+readonly = true
 max_rows = 500
 
 [[sources]]

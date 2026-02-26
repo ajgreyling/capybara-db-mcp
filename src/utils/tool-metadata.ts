@@ -90,13 +90,10 @@ export function getExecuteSqlMetadata(sourceId: string): ToolMetadata {
   const dbType = sourceConfig.type;
   const isSingleSource = sourceIds.length === 1;
 
-  // Get tool configuration from registry to extract readonly/max_rows
+  // Get tool configuration from registry to extract max_rows (readonly is always enforced)
   const registry = getToolRegistry();
   const toolConfig = registry.getBuiltinToolConfig(BUILTIN_TOOL_EXECUTE_SQL, sourceId);
-  const executeOptions = {
-    readonly: toolConfig?.readonly,
-    maxRows: toolConfig?.max_rows,
-  };
+  const maxRows = toolConfig?.max_rows;
 
   // Determine tool name based on single vs multi-source configuration
   const toolName = isSingleSource ? "execute_sql" : `execute_sql_${normalizeSourceId(sourceId)}`;
@@ -106,21 +103,19 @@ export function getExecuteSqlMetadata(sourceId: string): ToolMetadata {
     ? `Execute SQL (${dbType})`
     : `Execute SQL on ${sourceId} (${dbType})`;
 
-  // Determine description with more context (default is read-only: show note when not explicitly writable)
-  const isReadonly = executeOptions.readonly !== false;
-  const readonlyNote = isReadonly ? " [READ-ONLY MODE]" : "";
-  const maxRowsNote = executeOptions.maxRows ? ` (limited to ${executeOptions.maxRows} rows)` : "";
+  // Determine description (always read-only in this fork)
+  const readonlyNote = " [READ-ONLY MODE]";
+  const maxRowsNote = maxRows ? ` (limited to ${maxRows} rows)` : "";
   const description = isSingleSource
     ? `Execute SQL queries on the ${dbType} database${readonlyNote}${maxRowsNote}`
     : `Execute SQL queries on the '${sourceId}' ${dbType} database${readonlyNote}${maxRowsNote}`;
 
-  // Build annotations object with all standard MCP hints
+  // Build annotations object with all standard MCP hints (always read-only)
   const annotations = {
     title,
-    readOnlyHint: isReadonly,
-    destructiveHint: !isReadonly, // Can be destructive if not readonly
-    // In readonly mode, queries are more predictable (though still not strictly idempotent due to data changes)
-    // In write mode, queries are definitely not idempotent
+    readOnlyHint: true,
+    destructiveHint: false,
+    // Read-only queries are more predictable (though still not strictly idempotent due to data changes)
     idempotentHint: false,
     // Database operations are always against internal/closed systems, not open-world
     openWorldHint: false,
@@ -185,16 +180,14 @@ function buildExecuteSqlTool(sourceId: string, toolConfig?: ToolConfig): Tool {
   const executeSqlMetadata = getExecuteSqlMetadata(sourceId);
   const executeSqlParameters = zodToParameters(executeSqlMetadata.schema);
 
-  // Extract readonly and max_rows from toolConfig
-  // ToolConfig is a union type, but ExecuteSqlToolConfig and CustomToolConfig both have these fields
-  const readonly = toolConfig && 'readonly' in toolConfig ? toolConfig.readonly : undefined;
+  // Extract max_rows from toolConfig (readonly is always true in this fork)
   const max_rows = toolConfig && 'max_rows' in toolConfig ? toolConfig.max_rows : undefined;
 
   return {
     name: executeSqlMetadata.name,
     description: executeSqlMetadata.description,
     parameters: executeSqlParameters,
-    readonly,
+    readonly: true,
     max_rows,
   };
 }
@@ -259,7 +252,7 @@ function buildCustomTool(toolConfig: ToolConfig): Tool {
     description: toolConfig.description!,
     parameters: customParamsToToolParams(toolConfig.parameters),
     statement: toolConfig.statement,
-    readonly: toolConfig.readonly,
+    readonly: true, // This fork is unconditionally read-only
     max_rows: toolConfig.max_rows,
   };
 }

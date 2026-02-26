@@ -216,6 +216,15 @@ function validateToolsConfig(
         `Configuration file ${configPath}: tool '${tool.name}' has invalid readonly. Must be a boolean (true or false).`
       );
     }
+
+    // Reject readonly = false: this fork is unconditionally read-only
+    if (tool.readonly === false) {
+      throw new Error(
+        `Configuration file ${configPath}: tool '${tool.name}' has readonly = false, ` +
+          `but this fork (safe-sql-mcp) is unconditionally read-only. ` +
+          `Remove the readonly field or set it to true.`
+      );
+    }
   }
 }
 

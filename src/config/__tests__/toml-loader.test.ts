@@ -1305,6 +1305,22 @@ readonly = "yes"
       expect(() => loadTomlConfig()).toThrow('invalid readonly');
     });
 
+    it('should throw error for tool with readonly = false (fork is unconditionally read-only)', () => {
+      const tomlContent = `
+[[sources]]
+id = "test_db"
+dsn = "postgres://user:pass@localhost:5432/testdb"
+
+[[tools]]
+name = "execute_sql"
+source = "test_db"
+readonly = false
+`;
+      fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);
+
+      expect(() => loadTomlConfig()).toThrow(/readonly = false.*unconditionally read-only/);
+    });
+
     it('should throw error for custom tool with invalid max_rows', () => {
       const tomlContent = `
 [[sources]]
