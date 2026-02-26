@@ -1,8 +1,8 @@
 {
   "name": "safe-sql-mcp",
-  "version": "0.16.3",
+  "version": "0.16.4",
   "mcpName": "io.github.ajgreyling/safe-sql-mcp",
-  "description": "Minimal, token-efficient Database MCP Server for PostgreSQL, MySQL, SQL Server, SQLite, MariaDB. Fork of DBHub with default-schema support.",
+  "description": "Minimal, token-efficient Database Read-Only MCP Server for PostgreSQL, MySQL, SQL Server, SQLite, MariaDB. Fork of DBHub with default-schema support.",
   "repository": {
     "type": "git",
     "url": "https://github.com/ajgreyling/safe-sql-mcp.git"
@@ -31,6 +31,7 @@
     "test:unit": "vitest run --project unit",
     "test:watch": "vitest",
     "test:integration": "vitest run --project integration",
+    "test:query-timeout": "tsx scripts/test-query-timeout.ts",
     "release": "pnpm run build && npm publish"
   },
   "keywords": [],

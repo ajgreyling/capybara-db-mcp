@@ -1,5 +1,7 @@
 import { Connector, ConnectorType, ConnectorRegistry, ExecuteOptions, ConnectorConfig } from "./interface.js";
 import { SSHTunnel } from "../utils/ssh-tunnel.js";
+
+const DEFAULT_QUERY_TIMEOUT_SECONDS = 60;
 import type { SSHTunnelConfig } from "../types/ssh.js";
 import type { SourceConfig } from "../types/config.js";
 import { buildDSNFromSource } from "../config/toml-loader.js";
@@ -212,8 +214,8 @@ export class ConnectorManager {
       config.connectionTimeoutSeconds = source.connection_timeout;
     }
     // Query timeout is supported by PostgreSQL, MySQL, MariaDB, SQL Server (not SQLite)
-    if (source.query_timeout !== undefined && connector.id !== 'sqlite') {
-      config.queryTimeoutSeconds = source.query_timeout;
+    if (connector.id !== 'sqlite') {
+      config.queryTimeoutSeconds = source.query_timeout ?? DEFAULT_QUERY_TIMEOUT_SECONDS;
     }
     // Pass readonly flag for SDK-level enforcement (PostgreSQL, SQLite)
     if (source.readonly !== undefined) {

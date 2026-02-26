@@ -41,7 +41,7 @@ safe-sql-mcp is a zero-dependency, token-efficient MCP server implementing the M
 - **Multi-Database**: PostgreSQL, MySQL, MariaDB, SQL Server, and SQLite through a single interface
 - **Multi-Connection**: Connect to multiple databases simultaneously with TOML configuration
 - **Default schema**: Use `--schema` (or TOML `schema = "..."`) so PostgreSQL uses that schema for `execute_sql` and `search_objects` is restricted to it (see below)
-- **Guardrails**: Unconditionally read-only, row limiting, and query timeout to prevent runaway operations
+- **Guardrails**: Unconditionally read-only, row limiting, and a safe 60-second query timeout default (overridable per source via `query_timeout` in `dbhub.toml`) to prevent runaway operations
 - **Secure Access**: SSH tunneling and SSL/TLS encryption
 
 ## Supported Databases

@@ -104,6 +104,7 @@ DBHub supports three configuration methods (in priority order):
   - `src/config/__tests__/toml-loader.test.ts`: Comprehensive test suite
 - Features:
   - Per-source settings: SSH tunnels, timeouts, SSL configuration
+  - Query timeout: Defaults to 60 seconds for all non-SQLite connectors; override with `query_timeout = N` (seconds) in a `[[sources]]` block
   - Per-tool settings: `max_rows` (configured in `[[tools]]` section, not `[[sources]]`). This fork is unconditionally read-only; `readonly = false` is rejected.
   - Custom tools: Define reusable, parameterized SQL operations
   - Path expansion for `~/` in file paths
