@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createExecuteSqlToolHandler } from '../execute-sql.js';
 import { ConnectorManager } from '../../connectors/manager.js';
 import { getToolRegistry } from '../registry.js';
+import { writeResultFile } from '../../utils/result-writer.js';
 import type { Connector, ConnectorType, SQLResult } from '../../connectors/interface.js';
 
 // Mock dependencies
@@ -75,6 +76,11 @@ describe('execute-sql tool', () => {
       expect(parsedResult.data.file_path).toContain('.safe-sql-results');
       expect(parsedResult.data.file_path).toContain('execute_sql');
       expect(parsedResult.data.rows).toBeUndefined();
+      expect(vi.mocked(writeResultFile)).toHaveBeenCalledWith(
+        [{ id: 1, name: 'test' }],
+        'execute_sql',
+        'csv'
+      );
       expect(mockConnector.executeSQL).toHaveBeenCalledWith('SELECT * FROM users', { readonly: undefined, maxRows: undefined });
     });
 
