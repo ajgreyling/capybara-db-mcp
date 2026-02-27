@@ -221,7 +221,7 @@ function validateToolsConfig(
     if (tool.readonly === false) {
       throw new Error(
         `Configuration file ${configPath}: tool '${tool.name}' has readonly = false, ` +
-          `but this fork (safe-sql-mcp) is unconditionally read-only. ` +
+          `but this fork (capybara-db-mcp) is unconditionally read-only. ` +
           `Remove the readonly field or set it to true.`
       );
     }

@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.ajgreyling/safe-sql-mcp",
-  "title": "safe-sql-mcp",
+  "name": "io.github.ajgreyling/capybara-db-mcp",
+  "title": "capybara-db-mcp",
   "description": "Database MCP Server (fork of DBHub) with default-schema support for PostgreSQL and multi-database setups.",
   "repository": {
-    "url": "https://github.com/ajgreyling/safe-sql-mcp",
+    "url": "https://github.com/ajgreyling/capybara-db-mcp",
     "source": "github"
   },
   "version": "0.16.1",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "safe-sql-mcp",
+      "identifier": "capybara-db-mcp",
       "version": "0.16.1",
       "transport": {
         "type": "stdio"

@@ -1,22 +1,24 @@
-# safe-sql-mcp
+# capybara-db-mcp
 
-**safe-sql-mcp** is a community fork of [DBHub](https://github.com/bytebase/dbhub) by [Bytebase](https://www.bytebase.com/). The key difference: **DBHub sends query results (rows, columns, counts) directly to the LLM**, which can expose sensitive data. **safe-sql-mcp is PII-safe**: it writes results to local files, opens them in the editor, and returns only success/failure to the LLM—no data or file path ever reaches the model. It also enforces read-only SQL, keeps the same internal names (e.g. `dbhub.toml`) for easy merging from upstream, and adds **default-schema support** for PostgreSQL and multi-database setups. 
+> **Your data is safe with Capybara.** Just like capybaras are famously safe and peaceful to be around, **capybara-db-mcp keeps your database data safe—your query results are never shared with an LLM.** Data stays on your machine; the model receives only success/failure.
+
+**capybara-db-mcp** is a community fork of [DBHub](https://github.com/bytebase/dbhub) by [Bytebase](https://www.bytebase.com/). The key difference: **DBHub sends query results (rows, columns, counts) directly to the LLM**, which can expose sensitive data. **capybara-db-mcp is PII-safe**: it writes results to local files, opens them in the editor, and returns only success/failure to the LLM—no data or file path ever reaches the model. It also enforces read-only SQL, keeps the same internal names (e.g. `dbhub.toml`) for easy merging from upstream, and adds **default-schema support** for PostgreSQL and multi-database setups.
 
 - **Original project:** [github.com/bytebase/dbhub](https://github.com/bytebase/dbhub)
-- **This fork:** [github.com/ajgreyling/safe-sql-mcp](https://github.com/ajgreyling/safe-sql-mcp)
+- **This fork:** [github.com/ajgreyling/capybara-db-mcp](https://github.com/ajgreyling/capybara-db-mcp)
 
 To point your clone at this fork:
 
 ```bash
-git remote set-url origin https://github.com/ajgreyling/safe-sql-mcp.git
+git remote set-url origin https://github.com/ajgreyling/capybara-db-mcp.git
 ```
 
 <p align="center">
 <a href="https://dbhub.ai/" target="_blank">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ajgreyling/safe-sql-mcp/main/docs/images/logo/full-dark.svg" width="75%">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ajgreyling/safe-sql-mcp/main/docs/images/logo/full-light.svg" width="75%">
-  <img src="https://raw.githubusercontent.com/ajgreyling/safe-sql-mcp/main/docs/images/logo/full-light.svg" width="75%" alt="DBHub Logo">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ajgreyling/capybara-db-mcp/main/docs/images/logo/full-dark.svg" width="75%">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ajgreyling/capybara-db-mcp/main/docs/images/logo/full-light.svg" width="75%">
+  <img src="https://raw.githubusercontent.com/ajgreyling/capybara-db-mcp/main/docs/images/logo/full-light.svg" width="75%" alt="DBHub Logo">
 </picture>
 </a>
 </p>
@@ -32,7 +34,7 @@ flowchart LR
     end
 
     subgraph server["MCP Server"]
-        M[safe-sql-mcp]
+        M[capybara-db-mcp]
     end
 
     subgraph dbs["Databases"]
@@ -67,7 +69,7 @@ flowchart TB
         R["Tool response:\n✓ success/failure only"]
     end
 
-    subgraph server["safe-sql-mcp"]
+    subgraph server["capybara-db-mcp"]
         Exec[Execute SQL]
         Write[Write to .safe-sql-results/]
         Format[createPiiSafeToolResponse]
@@ -89,11 +91,11 @@ flowchart TB
     Format -->|6. Success only - no path, count, or columns| R
 ```
 
-safe-sql-mcp is a zero-dependency, token-efficient MCP server implementing the Model Context Protocol (MCP). It supports the same features as DBHub, plus a default schema.
+capybara-db-mcp is a zero-dependency, token-efficient MCP server implementing the Model Context Protocol (MCP). It supports the same features as DBHub, plus a default schema.
 
 **This fork is unconditionally read-only.** Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is allowed. Write operations (UPDATE, DELETE, INSERT, MERGE, etc.) are never permitted.
 
-**PII-safe by design.** Query results are never sent to the LLM. Raw data is written to local files (`.safe-sql-results/`) and opened in the editor; the LLM receives only success/failure. No file path, row count, or column names are returned (to prevent exfiltration via dynamic SQL). This prevents personally identifiable information (PII) from ever reaching the model.
+**Your data is safe with Capybara.** Capybaras are famously safe and peaceful—and so is your data. Query results are **never shared with an LLM**. Raw data is written to local files (`.safe-sql-results/`) and opened in the editor; the LLM receives only success/failure. No file path, row count, or column names are returned (to prevent exfiltration via dynamic SQL). This prevents personally identifiable information (PII) from ever reaching the model.
 
 - **Local Development First**: Zero dependency, token efficient with just two MCP tools to maximize context window
 - **Multi-Database**: PostgreSQL, MySQL, MariaDB, SQL Server, and SQLite through a single interface
@@ -105,7 +107,7 @@ safe-sql-mcp is a zero-dependency, token-efficient MCP server implementing the M
 
 ## Why Capybara?
 
-The capybara is the spirit animal of safe-sql-mcp: calm, social, and famously safe to be around. It reflects the project's philosophy of peaceful coexistence, predictable behavior, and built-in guardrails.
+The capybara is the spirit animal of capybara-db-mcp: calm, social, and famously safe to be around. **Just as capybaras are safe**, your database data stays safe—never shared with an LLM. It reflects the project's philosophy of peaceful coexistence, predictable behavior, and built-in guardrails.
 
 ### The Capybara: A Paragon of Peaceful Coexistence
 
@@ -138,7 +140,7 @@ When you set a default schema (via `--schema`, the `SCHEMA` environment variable
 {
   "command": "npx",
   "args": [
-    "safe-sql-mcp",
+    "capybara-db-mcp",
     "--transport",
     "stdio",
     "--dsn",
@@ -178,7 +180,7 @@ This fork is unconditionally read-only. Write operations (UPDATE, DELETE, INSERT
 
 ## Workbench
 
-safe-sql-mcp includes the same [built-in web interface](https://dbhub.ai/workbench/overview) as DBHub for interacting with your database tools.
+capybara-db-mcp includes the same [built-in web interface](https://dbhub.ai/workbench/overview) as DBHub for interacting with your database tools.
 
 ![workbench](https://raw.githubusercontent.com/bytebase/dbhub/main/docs/images/workbench/workbench.webp)
 
@@ -190,19 +192,19 @@ safe-sql-mcp includes the same [built-in web interface](https://dbhub.ai/workben
 
 ```bash
 pnpm install && pnpm build
-npx safe-sql-mcp --transport http --port 8080 --dsn "postgres://user:password@localhost:5432/dbname?sslmode=disable"
+npx capybara-db-mcp --transport http --port 8080 --dsn "postgres://user:password@localhost:5432/dbname?sslmode=disable"
 ```
 
 With a default schema:
 
 ```bash
-npx safe-sql-mcp --transport stdio --dsn "postgres://user:password@localhost:5432/dbname" --schema "public"
+npx capybara-db-mcp --transport stdio --dsn "postgres://user:password@localhost:5432/dbname" --schema "public"
 ```
 
 **Demo mode:**
 
 ```bash
-npx safe-sql-mcp --transport http --port 8080 --demo
+npx capybara-db-mcp --transport http --port 8080 --demo
 ```
 
 See [Command-Line Options](https://dbhub.ai/config/command-line) for all parameters.

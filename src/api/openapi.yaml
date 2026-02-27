@@ -4,8 +4,8 @@ info:
   description: RESTful API for managing and inspecting database data sources
   version: 1.0.0
   contact:
-    name: safe-sql-mcp
-    url: https://github.com/ajgreyling/safe-sql-mcp
+    name: capybara-db-mcp
+    url: https://github.com/ajgreyling/capybara-db-mcp
 
 servers:
   - url: http://localhost:8080

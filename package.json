@@ -1,16 +1,16 @@
 {
-  "name": "safe-sql-mcp",
-  "version": "2.1.0",
-  "mcpName": "io.github.ajgreyling/safe-sql-mcp",
+  "name": "capybara-db-mcp",
+  "version": "1.0.0",
+  "mcpName": "io.github.ajgreyling/capybara-db-mcp",
   "description": "Minimal, token-efficient Database Read-Only PPI-safe MCP Server for PostgreSQL, MySQL, SQL Server, SQLite, MariaDB. Fork of DBHub with default-schema support.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ajgreyling/safe-sql-mcp.git"
+    "url": "https://github.com/ajgreyling/capybara-db-mcp.git"
   },
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "safe-sql-mcp": "dist/index.js"
+    "capybara-db-mcp": "dist/index.js"
   },
   "files": [
     "dist",

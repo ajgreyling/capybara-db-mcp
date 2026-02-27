@@ -29,7 +29,7 @@ export function parseCommandLineArgs() {
       // Fail immediately on deprecated/removed flags
       if (key === "destructive") {
         console.error("\nERROR: --destructive flag is not supported.");
-        console.error("This fork (safe-sql-mcp) is unconditionally read-only.");
+        console.error("This fork (capybara-db-mcp) is unconditionally read-only.");
         console.error("Write operations (UPDATE, DELETE, INSERT, etc.) are never allowed.\n");
         process.exit(1);
       }

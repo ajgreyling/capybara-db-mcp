@@ -1,10 +1,12 @@
-# safe-sql-mcp Documentation
+# capybara-db-mcp Documentation
 
-Documentation for **safe-sql-mcp** (fork of [DBHub](https://github.com/bytebase/dbhub)). For upstream docs see [dbhub.ai](https://dbhub.ai).
+> **Your data is safe with Capybara.** Just like capybaras are famously safe and peaceful, **your query results are never shared with an LLM.** Data stays local; only success/failure goes to the model.
 
-**safe-sql-mcp is unconditionally read-only.** Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is allowed. Write operations (UPDATE, DELETE, INSERT, MERGE, etc.) are never permitted. SQL queries use a safe default timeout of 60 seconds (overridable per source via `query_timeout` in TOML configuration).
+Documentation for **capybara-db-mcp** (fork of [DBHub](https://github.com/bytebase/dbhub)). For upstream docs see [dbhub.ai](https://dbhub.ai).
 
-**safe-sql-mcp is PII-safe.** Query results are never sent to the LLM. Actual data is written to `.safe-sql-results/`; the LLM receives only success/failure and the file path (no row count or column names to prevent exfiltration). This prevents personally identifiable information from ever reaching the model.
+**capybara-db-mcp is unconditionally read-only.** Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is allowed. Write operations (UPDATE, DELETE, INSERT, MERGE, etc.) are never permitted. SQL queries use a safe default timeout of 60 seconds (overridable per source via `query_timeout` in TOML configuration).
+
+**capybara-db-mcp is PII-safe.** Query results are never sent to the LLM. Actual data is written to `.safe-sql-results/`; the LLM receives only success/failure (no row count, column names, or file path to prevent exfiltration). Your data never reaches the model.
 
 Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview documentation locally:
 
