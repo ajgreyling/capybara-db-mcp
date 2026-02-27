@@ -70,15 +70,11 @@ export function createToolErrorResponse(error: string, code: string = "ERROR", d
 }
 
 /**
- * Create a PII-safe tool response with metadata only (count, columns, file path).
+ * Create a PII-safe tool response with only the file path.
  * Query result data is written to a file; this response is sent to the LLM.
+ * No count, columns, or source_id to prevent exfiltration via dynamic column aliasing.
  */
-export function createPiiSafeToolResponse(meta: {
-  count: number;
-  columns: string[];
-  source_id: string;
-  file_path: string;
-}) {
+export function createPiiSafeToolResponse(meta: { file_path: string }) {
   return {
     content: [
       {

@@ -82,14 +82,8 @@ export function createExecuteSqlToolHandler(sourceId?: string) {
       };
       result = await connector.executeSQL(sql, executeOptions);
 
-      const columns = result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
       const filePath = writeResultFile(result.rows, "execute_sql", getOutputFormat());
-      return createPiiSafeToolResponse({
-        count: result.rowCount,
-        columns,
-        source_id: effectiveSourceId,
-        file_path: filePath,
-      });
+      return createPiiSafeToolResponse({ file_path: filePath });
     } catch (error) {
       success = false;
       errorMessage = (error as Error).message;

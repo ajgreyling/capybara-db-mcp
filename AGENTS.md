@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This codebase is the **safe-sql-mcp** fork ([github.com/ajgreyling/safe-sql-mcp](https://github.com/ajgreyling/safe-sql-mcp)) of DBHub; it keeps internal names (e.g. `dbhub.toml`) for upstream compatibility and adds `--schema` / default schema support.
 
-**This fork is PII-safe.** Query results from `execute_sql` and custom tools are never sent to the LLM. Data is written to `.safe-sql-results/`; only metadata (count, columns, file path) is returned in MCP tool responses. See `src/utils/result-writer.ts` and `createPiiSafeToolResponse` in `src/utils/response-formatter.ts`.
+**This fork is PII-safe.** Query results from `execute_sql` and custom tools are never sent to the LLM. Data is written to `.safe-sql-results/`; only success/failure and file path are returned (no count or column names to prevent exfiltration via dynamic SQL). See `src/utils/result-writer.ts` and `createPiiSafeToolResponse` in `src/utils/response-formatter.ts`.
 
 # DBHub Development Guidelines
 
@@ -12,7 +12,7 @@ DBHub is a zero-dependency, token efficient database MCP server implementing the
 
 **This fork is unconditionally read-only.** Write operations are never allowed. Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is permitted.
 
-**This fork is PII-safe.** Query results are written to `.safe-sql-results/`; only row count, column names, and file path are sent to the LLM. Actual data never enters the MCP tool response. Configure output format via `--output-format=csv|json|markdown`.
+**This fork is PII-safe.** Query results are written to `.safe-sql-results/`; only success/failure and file path are sent to the LLM (no row count or column names). Actual data never enters the MCP tool response. Configure output format via `--output-format=csv|json|markdown`.
 
 ## Commands
 
@@ -62,7 +62,7 @@ Key architectural patterns:
   - Tests in `src/__tests__/json-rpc-integration.test.ts`
 - **Tool Handlers**: Clean separation of MCP protocol concerns
   - Tools accept optional `source_id` parameter for multi-database routing
-- **PII-Safe Output**: `execute_sql` and custom tools never return row data to the LLM. Results are written to `.safe-sql-results/`; tool responses contain only metadata (count, columns, file_path). Output format: `--output-format=csv|json|markdown`
+- **PII-Safe Output**: `execute_sql` and custom tools never return row data to the LLM. Results are written to `.safe-sql-results/`; tool responses contain only success/failure and file_path (no count or columns to prevent exfiltration). Output format: `--output-format=csv|json|markdown`
 - **Token-Efficient Schema Exploration**: Unified search/list tool with progressive disclosure
   - `search_objects`: Single tool for both pattern-based search and listing all objects
   - Pattern parameter defaults to `%` (match all) - optional for listing use cases

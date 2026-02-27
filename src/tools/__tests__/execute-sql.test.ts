@@ -70,12 +70,11 @@ describe('execute-sql tool', () => {
       const parsedResult = parseToolResponse(result);
 
       expect(parsedResult.success).toBe(true);
-      expect(parsedResult.data.count).toBe(1);
-      expect(parsedResult.data.columns).toEqual(['id', 'name']);
-      expect(parsedResult.data.source_id).toBe('test_source');
       expect(parsedResult.data.file_path).toContain('.safe-sql-results');
       expect(parsedResult.data.file_path).toContain('execute_sql');
       expect(parsedResult.data.rows).toBeUndefined();
+      expect(parsedResult.data.columns).toBeUndefined();
+      expect(parsedResult.data.count).toBeUndefined();
       expect(vi.mocked(writeResultFile)).toHaveBeenCalledWith(
         [{ id: 1, name: 'test' }],
         'execute_sql',

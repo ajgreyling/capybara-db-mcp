@@ -203,14 +203,8 @@ export function createCustomToolHandler(toolConfig: ToolConfig) {
         paramValues
       );
 
-      const columns = result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
       const filePath = writeResultFile(result.rows, toolConfig.name, getOutputFormat());
-      return createPiiSafeToolResponse({
-        count: result.rowCount,
-        columns,
-        source_id: toolConfig.source,
-        file_path: filePath,
-      });
+      return createPiiSafeToolResponse({ file_path: filePath });
     } catch (error) {
       success = false;
       errorMessage = (error as Error).message;

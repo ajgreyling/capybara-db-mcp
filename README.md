@@ -37,14 +37,14 @@ safe-sql-mcp is a zero-dependency, token-efficient MCP server implementing the M
 
 **This fork is unconditionally read-only.** Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is allowed. Write operations (UPDATE, DELETE, INSERT, MERGE, etc.) are never permitted.
 
-**PII-safe by design.** Query results are never sent to the LLM. Raw data is written to local files (`.safe-sql-results/`) and the LLM receives only metadata: row count, column names, and file path. This prevents personally identifiable information (PII) from ever reaching the model.
+**PII-safe by design.** Query results are never sent to the LLM. Raw data is written to local files (`.safe-sql-results/`) and the LLM receives only success/failure plus the file path. No row count or column names are returned (to prevent exfiltration via dynamic SQL). This prevents personally identifiable information (PII) from ever reaching the model.
 
 - **Local Development First**: Zero dependency, token efficient with just two MCP tools to maximize context window
 - **Multi-Database**: PostgreSQL, MySQL, MariaDB, SQL Server, and SQLite through a single interface
 - **Multi-Connection**: Connect to multiple databases simultaneously with TOML configuration
 - **Default schema**: Use `--schema` (or TOML `schema = "..."`) so PostgreSQL uses that schema for `execute_sql` and `search_objects` is restricted to it (see below)
 - **Guardrails**: Unconditionally read-only, row limiting, and a safe 60-second query timeout default (overridable per source via `query_timeout` in `dbhub.toml`) to prevent runaway operations
-- **PII-safe**: Query results are written to `.safe-sql-results/`; only row count, column names, and file path are sent to the LLM—actual data never leaves your machine
+- **PII-safe**: Query results are written to `.safe-sql-results/`; only success/failure and file path are sent to the LLM—no row data, count, or column names (prevents exfiltration via dynamic column aliasing)
 - **Secure Access**: SSH tunneling and SSL/TLS encryption
 
 ## Why Capybara?
@@ -114,7 +114,7 @@ Full DBHub docs (including TOML and command-line options) apply; see [dbhub.ai](
 
 ### PII-safe output
 
-By default, `execute_sql` and custom tools write query results to `.safe-sql-results/` in your project directory. The MCP tool response sent to the LLM contains only: row count, column names, source ID, and the path to the results file. **Actual row data is never sent to the LLM**, so PII cannot leak into the model context. The user inspects results by opening the file. Output format is configurable via `--output-format=csv|json|markdown` (default: `csv`).
+By default, `execute_sql` and custom tools write query results to `.safe-sql-results/` in your project directory. The MCP tool response sent to the LLM contains only success/failure and the file path. **No row data, row count, or column names** are returned—preventing both direct PII leakage and exfiltration via dynamic SQL (e.g. `SELECT secret AS "password_is_hunter2"`). The user inspects results by opening the file. Output format is configurable via `--output-format=csv|json|markdown` (default: `csv`).
 
 ### Read-only (unconditional)
 

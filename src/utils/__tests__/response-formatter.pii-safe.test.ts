@@ -2,11 +2,8 @@ import { describe, it, expect } from "vitest";
 import { createPiiSafeToolResponse } from "../response-formatter.js";
 
 describe("createPiiSafeToolResponse", () => {
-  it("returns metadata-only content for the LLM", () => {
+  it("returns only file_path to prevent exfiltration via column aliasing", () => {
     const response = createPiiSafeToolResponse({
-      count: 3,
-      columns: ["id", "email"],
-      source_id: "default",
       file_path: "/tmp/.safe-sql-results/result.csv",
     });
 
@@ -14,15 +11,11 @@ describe("createPiiSafeToolResponse", () => {
     expect(response.content[0].type).toBe("text");
     expect(response.content[0].mimeType).toBe("application/json");
 
-    // Explicitly test that no PII data is present in the response
     const payload = JSON.parse(response.content[0].text);
     expect(payload.success).toBe(true);
-    expect(payload.data).toEqual({
-      count: 3,
-      columns: ["id", "email"],
-      source_id: "default",
-      file_path: "/tmp/.safe-sql-results/result.csv",
-    });
+    expect(payload.data).toEqual({ file_path: "/tmp/.safe-sql-results/result.csv" });
     expect(payload.data.rows).toBeUndefined();
+    expect(payload.data.columns).toBeUndefined();
+    expect(payload.data.count).toBeUndefined();
   });
 });
