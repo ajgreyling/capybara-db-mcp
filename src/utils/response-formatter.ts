@@ -70,6 +70,27 @@ export function createToolErrorResponse(error: string, code: string = "ERROR", d
 }
 
 /**
+ * Create a PII-safe tool response with metadata only (count, columns, file path).
+ * Query result data is written to a file; this response is sent to the LLM.
+ */
+export function createPiiSafeToolResponse(meta: {
+  count: number;
+  columns: string[];
+  source_id: string;
+  file_path: string;
+}) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(formatSuccessResponse(meta), bigIntReplacer, 2),
+        mimeType: "application/json",
+      },
+    ],
+  };
+}
+
+/**
  * Create a tool success response object
  */
 export function createToolSuccessResponse<T>(data: T, meta: Record<string, any> = {}) {

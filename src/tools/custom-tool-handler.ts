@@ -7,9 +7,11 @@ import { z } from "zod";
 import { ToolConfig, ParameterConfig } from "../types/config.js";
 import { ConnectorManager } from "../connectors/manager.js";
 import {
-  createToolSuccessResponse,
+  createPiiSafeToolResponse,
   createToolErrorResponse,
 } from "../utils/response-formatter.js";
+import { writeResultFile } from "../utils/result-writer.js";
+import { getOutputFormat } from "../config/output-format.js";
 import { mapArgumentsToArray } from "../utils/parameter-mapper.js";
 import {
   isAllowedInReadonlyMode,
@@ -201,14 +203,14 @@ export function createCustomToolHandler(toolConfig: ToolConfig) {
         paramValues
       );
 
-      // 8. Build response data
-      const responseData = {
-        rows: result.rows,
+      const columns = result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
+      const filePath = writeResultFile(result.rows, toolConfig.name, getOutputFormat());
+      return createPiiSafeToolResponse({
         count: result.rowCount,
+        columns,
         source_id: toolConfig.source,
-      };
-
-      return createToolSuccessResponse(responseData);
+        file_path: filePath,
+      });
     } catch (error) {
       success = false;
       errorMessage = (error as Error).message;

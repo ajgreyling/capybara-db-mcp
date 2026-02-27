@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { ConnectorManager } from "../connectors/manager.js";
-import { createToolSuccessResponse, createToolErrorResponse } from "../utils/response-formatter.js";
+import { createPiiSafeToolResponse, createToolErrorResponse } from "../utils/response-formatter.js";
+import { writeResultFile } from "../utils/result-writer.js";
+import { getOutputFormat } from "../config/output-format.js";
 import { isReadOnlySQL, allowedKeywords } from "../utils/allowed-keywords.js";
 import { ConnectorType } from "../connectors/interface.js";
 import { getToolRegistry } from "./registry.js";
@@ -80,14 +82,14 @@ export function createExecuteSqlToolHandler(sourceId?: string) {
       };
       result = await connector.executeSQL(sql, executeOptions);
 
-      // Build response data
-      const responseData = {
-        rows: result.rows,
+      const columns = result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
+      const filePath = writeResultFile(result.rows, "execute_sql", getOutputFormat());
+      return createPiiSafeToolResponse({
         count: result.rowCount,
+        columns,
         source_id: effectiveSourceId,
-      };
-
-      return createToolSuccessResponse(responseData);
+        file_path: filePath,
+      });
     } catch (error) {
       success = false;
       errorMessage = (error as Error).message;

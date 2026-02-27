@@ -4,11 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This codebase is the **safe-sql-mcp** fork ([github.com/ajgreyling/safe-sql-mcp](https://github.com/ajgreyling/safe-sql-mcp)) of DBHub; it keeps internal names (e.g. `dbhub.toml`) for upstream compatibility and adds `--schema` / default schema support.
 
+**This fork is PII-safe.** Query results from `execute_sql` and custom tools are never sent to the LLM. Data is written to `.safe-sql-results/`; only metadata (count, columns, file path) is returned in MCP tool responses. See `src/utils/result-writer.ts` and `createPiiSafeToolResponse` in `src/utils/response-formatter.ts`.
+
 # DBHub Development Guidelines
 
 DBHub is a zero-dependency, token efficient database MCP server implementing the Model Context Protocol (MCP) server interface. This lightweight server bridges MCP-compatible clients (Claude Desktop, Claude Code, Cursor) with various database systems.
 
 **This fork is unconditionally read-only.** Write operations are never allowed. Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is permitted.
+
+**This fork is PII-safe.** Query results are written to `.safe-sql-results/`; only row count, column names, and file path are sent to the LLM. Actual data never enters the MCP tool response. Configure output format via `--output-format=csv|json|markdown`.
 
 ## Commands
 
@@ -32,11 +36,12 @@ src/
 │   ├── sqlserver/       # SQL Server connector
 │   └── sqlite/          # SQLite connector
 ├── tools/               # MCP tool handlers
-│   ├── execute-sql.ts   # SQL execution handler
+│   ├── execute-sql.ts   # SQL execution handler (PII-safe: writes to file)
 │   └── search-objects.ts  # Unified search/list with progressive disclosure
 ├── utils/               # Shared utilities
 │   ├── dsn-obfuscator.ts# DSN security
-│   ├── response-formatter.ts # Output formatting
+│   ├── response-formatter.ts # Output formatting (createPiiSafeToolResponse)
+│   ├── result-writer.ts # Writes query results to .safe-sql-results/
 │   └── allowed-keywords.ts  # Read-only SQL validation
 └── index.ts             # Entry point with transport handling
 ```
@@ -57,6 +62,7 @@ Key architectural patterns:
   - Tests in `src/__tests__/json-rpc-integration.test.ts`
 - **Tool Handlers**: Clean separation of MCP protocol concerns
   - Tools accept optional `source_id` parameter for multi-database routing
+- **PII-Safe Output**: `execute_sql` and custom tools never return row data to the LLM. Results are written to `.safe-sql-results/`; tool responses contain only metadata (count, columns, file_path). Output format: `--output-format=csv|json|markdown`
 - **Token-Efficient Schema Exploration**: Unified search/list tool with progressive disclosure
   - `search_objects`: Single tool for both pattern-based search and listing all objects
   - Pattern parameter defaults to `%` (match all) - optional for listing use cases
@@ -127,6 +133,7 @@ DBHub supports three configuration methods (in priority order):
 - `--port`: HTTP server port (default: 8080)
 - `--config`: Path to TOML configuration file
 - `--demo`: Use bundled SQLite employee database
+- `--output-format`: Result file format for PII-safe output: `csv` (default), `json`, or `markdown`
 - `--max-rows`: Limit rows returned from SELECT queries (deprecated - use TOML configuration instead)
 - SSH tunnel options: `--ssh-host`, `--ssh-port`, `--ssh-user`, `--ssh-password`, `--ssh-key`, `--ssh-passphrase`
 - Documentation: https://dbhub.ai/config/command-line

@@ -7,6 +7,14 @@ import type { Connector, ConnectorType, SQLResult } from '../../connectors/inter
 // Mock dependencies
 vi.mock('../../connectors/manager.js');
 vi.mock('../registry.js');
+vi.mock('../../utils/result-writer.js', () => ({
+  writeResultFile: vi.fn((_rows: any[], toolName: string) =>
+    `/fake/path/.safe-sql-results/20260226_120000_${toolName}.csv`
+  ),
+}));
+vi.mock('../../config/output-format.js', () => ({
+  getOutputFormat: vi.fn(() => 'csv'),
+}));
 
 // Mock connector for testing
 const createMockConnector = (id: ConnectorType = 'sqlite', sourceId: string = 'default'): Connector => ({
@@ -52,7 +60,7 @@ describe('execute-sql tool', () => {
   });
 
   describe('basic execution', () => {
-    it('should execute SELECT and return rows', async () => {
+    it('should execute SELECT and return metadata only (PII-safe)', async () => {
       const mockResult: SQLResult = { rows: [{ id: 1, name: 'test' }], rowCount: 1 };
       vi.mocked(mockConnector.executeSQL).mockResolvedValue(mockResult);
 
@@ -61,8 +69,12 @@ describe('execute-sql tool', () => {
       const parsedResult = parseToolResponse(result);
 
       expect(parsedResult.success).toBe(true);
-      expect(parsedResult.data.rows).toEqual([{ id: 1, name: 'test' }]);
       expect(parsedResult.data.count).toBe(1);
+      expect(parsedResult.data.columns).toEqual(['id', 'name']);
+      expect(parsedResult.data.source_id).toBe('test_source');
+      expect(parsedResult.data.file_path).toContain('.safe-sql-results');
+      expect(parsedResult.data.file_path).toContain('execute_sql');
+      expect(parsedResult.data.rows).toBeUndefined();
       expect(mockConnector.executeSQL).toHaveBeenCalledWith('SELECT * FROM users', { readonly: undefined, maxRows: undefined });
     });
 

@@ -8,7 +8,8 @@ import { fileURLToPath } from "url";
 
 import { ConnectorManager } from "./connectors/manager.js";
 import { ConnectorRegistry } from "./connectors/interface.js";
-import { resolveTransport, resolvePort, resolveSourceConfigs, isDemoMode } from "./config/env.js";
+import { resolveTransport, resolvePort, resolveSourceConfigs, resolveOutputFormat, isDemoMode } from "./config/env.js";
+import { setOutputFormat } from "./config/output-format.js";
 import { registerTools } from "./tools/index.js";
 import { listSources, getSource } from "./api/sources.js";
 import { listRequests } from "./api/requests.js";
@@ -107,6 +108,8 @@ See documentation for more details on configuring database connections.
       tools: sourceConfigsData.tools,
     });
     console.error("Tool registry initialized");
+
+    setOutputFormat(resolveOutputFormat());
 
     // Create MCP server factory function for HTTP transport
     // Note: This must be created AFTER ConnectorManager is initialized

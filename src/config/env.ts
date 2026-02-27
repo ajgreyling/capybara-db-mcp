@@ -327,6 +327,21 @@ export function resolvePort(): { port: number; source: string } {
   return { port: 8080, source: "default" };
 }
 
+export type ResultFormat = "csv" | "json" | "markdown";
+
+/**
+ * Resolve output format for PII-safe result files from command line args
+ * Returns 'csv', 'json', or 'markdown', with 'csv' as the default
+ */
+export function resolveOutputFormat(): ResultFormat {
+  const args = parseCommandLineArgs();
+  const format = args["output-format"];
+  if (format && ["csv", "json", "markdown"].includes(format)) {
+    return format as ResultFormat;
+  }
+  return "csv";
+}
+
 /**
  * Redact sensitive information from a DSN string
  * Replaces the password with asterisks

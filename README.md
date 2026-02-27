@@ -37,11 +37,14 @@ safe-sql-mcp is a zero-dependency, token-efficient MCP server implementing the M
 
 **This fork is unconditionally read-only.** Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is allowed. Write operations (UPDATE, DELETE, INSERT, MERGE, etc.) are never permitted.
 
+**PII-safe by design.** Query results are never sent to the LLM. Raw data is written to local files (`.safe-sql-results/`) and the LLM receives only metadata: row count, column names, and file path. This prevents personally identifiable information (PII) from ever reaching the model.
+
 - **Local Development First**: Zero dependency, token efficient with just two MCP tools to maximize context window
 - **Multi-Database**: PostgreSQL, MySQL, MariaDB, SQL Server, and SQLite through a single interface
 - **Multi-Connection**: Connect to multiple databases simultaneously with TOML configuration
 - **Default schema**: Use `--schema` (or TOML `schema = "..."`) so PostgreSQL uses that schema for `execute_sql` and `search_objects` is restricted to it (see below)
 - **Guardrails**: Unconditionally read-only, row limiting, and a safe 60-second query timeout default (overridable per source via `query_timeout` in `dbhub.toml`) to prevent runaway operations
+- **PII-safe**: Query results are written to `.safe-sql-results/`; only row count, column names, and file path are sent to the LLM—actual data never leaves your machine
 - **Secure Access**: SSH tunneling and SSL/TLS encryption
 
 ## Why Capybara?
@@ -108,6 +111,10 @@ schema = "my_app_schema"
 ```
 
 Full DBHub docs (including TOML and command-line options) apply; see [dbhub.ai](https://dbhub.ai) and [Command-Line Options](https://dbhub.ai/config/command-line).
+
+### PII-safe output
+
+By default, `execute_sql` and custom tools write query results to `.safe-sql-results/` in your project directory. The MCP tool response sent to the LLM contains only: row count, column names, source ID, and the path to the results file. **Actual row data is never sent to the LLM**, so PII cannot leak into the model context. The user inspects results by opening the file. Output format is configurable via `--output-format=csv|json|markdown` (default: `csv`).
 
 ### Read-only (unconditional)
 
