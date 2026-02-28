@@ -137,6 +137,7 @@ DBHub supports three configuration methods (in priority order):
 - `--config`: Path to TOML configuration file
 - `--demo`: Use bundled SQLite employee database
 - `--output-format`: Result file format for PII-safe output: `csv` (default), `json`, or `markdown`
+- `--editor`: CLI command to open result files (e.g., `cursor`, `code`). Auto-detected from MCP client (Cursor/VS Code) when not set. Override via `--editor=code` or `EDITOR_COMMAND` env var.
 - `--max-rows`: Limit rows returned from SELECT queries (deprecated - use TOML configuration instead)
 - SSH tunnel options: `--ssh-host`, `--ssh-port`, `--ssh-user`, `--ssh-password`, `--ssh-key`, `--ssh-passphrase`
 - Documentation: https://dbhub.ai/config/command-line

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildDSNFromEnvParams, resolveDSN, resolveId, resolveSchema } from '../env.js';
+import { buildDSNFromEnvParams, resolveDSN, resolveId, resolveSchema, resolveEditorCommand } from '../env.js';
 
 // Mock toml-loader to prevent it from loading dbhub.toml during tests
 vi.mock('../toml-loader.js', () => ({
@@ -21,6 +21,7 @@ describe('Environment Configuration Tests', () => {
     delete process.env.DSN;
     delete process.env.ID;
     delete process.env.SCHEMA;
+    delete process.env.EDITOR_COMMAND;
   });
 
   afterEach(() => {
@@ -445,6 +446,56 @@ describe('Environment Configuration Tests', () => {
       expect(result).toEqual({
         id: '123',
         source: 'environment variable'
+      });
+    });
+  });
+
+  describe('resolveEditorCommand', () => {
+    it('should return null when neither --editor nor EDITOR_COMMAND is set', () => {
+      const origArgv = process.argv;
+      process.argv = ['node', 'script.js'];
+
+      const result = resolveEditorCommand();
+
+      process.argv = origArgv;
+      expect(result).toBeNull();
+    });
+
+    it('should return from --editor CLI flag', () => {
+      const origArgv = process.argv;
+      process.argv = ['node', 'script.js', '--editor=code'];
+
+      const result = resolveEditorCommand();
+
+      process.argv = origArgv;
+      expect(result).toEqual({
+        editor: 'code',
+        source: 'command line argument'
+      });
+    });
+
+    it('should return from EDITOR_COMMAND environment variable', () => {
+      process.env.EDITOR_COMMAND = 'cursor';
+
+      const result = resolveEditorCommand();
+
+      expect(result).toEqual({
+        editor: 'cursor',
+        source: 'environment variable'
+      });
+    });
+
+    it('should prefer CLI over env when both are set', () => {
+      const origArgv = process.argv;
+      process.argv = ['node', 'script.js', '--editor=code'];
+      process.env.EDITOR_COMMAND = 'cursor';
+
+      const result = resolveEditorCommand();
+
+      process.argv = origArgv;
+      expect(result).toEqual({
+        editor: 'code',
+        source: 'command line argument'
       });
     });
   });

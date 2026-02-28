@@ -343,6 +343,24 @@ export function resolveOutputFormat(): ResultFormat {
 }
 
 /**
+ * Resolve editor CLI command for opening result files from command line args or env
+ * Returns { editor, source } when explicitly set, or null to use auto-detection from MCP client
+ */
+export function resolveEditorCommand(): { editor: string; source: string } | null {
+  const args = parseCommandLineArgs();
+
+  if (args.editor) {
+    return { editor: args.editor, source: "command line argument" };
+  }
+
+  if (process.env.EDITOR_COMMAND) {
+    return { editor: process.env.EDITOR_COMMAND, source: "environment variable" };
+  }
+
+  return null;
+}
+
+/**
  * Redact sensitive information from a DSN string
  * Replaces the password with asterisks
  * @param dsn - The DSN string to redact

@@ -8,8 +8,14 @@ import { fileURLToPath } from "url";
 
 import { ConnectorManager } from "./connectors/manager.js";
 import { ConnectorRegistry } from "./connectors/interface.js";
-import { resolveTransport, resolvePort, resolveSourceConfigs, resolveOutputFormat, isDemoMode } from "./config/env.js";
+import { resolveTransport, resolvePort, resolveSourceConfigs, resolveOutputFormat, resolveEditorCommand, isDemoMode } from "./config/env.js";
 import { setOutputFormat } from "./config/output-format.js";
+import {
+  setEditorCommand,
+  setEditorExplicitly,
+  isEditorExplicitlySet,
+  detectEditorFromClientName,
+} from "./config/editor-command.js";
 import { registerTools } from "./tools/index.js";
 import { listSources, getSource } from "./api/sources.js";
 import { listRequests } from "./api/requests.js";
@@ -114,19 +120,39 @@ See documentation for more details on configuring database connections.
 
     setOutputFormat(resolveOutputFormat());
 
+    const editorResult = resolveEditorCommand();
+    if (editorResult) {
+      setEditorCommand(editorResult.editor);
+      setEditorExplicitly(true);
+      console.error(`Editor for result files: ${editorResult.editor} (${editorResult.source})`);
+    }
+
     // Create MCP server factory function for HTTP transport
     // Note: This must be created AFTER ConnectorManager is initialized
     const createServer = () => {
-      const server = new McpServer({
+      const mcpServer = new McpServer({
         name: SERVER_NAME,
         version: SERVER_VERSION,
       });
 
+      const underlyingServer = mcpServer.server;
+      underlyingServer.oninitialized = () => {
+        if (!isEditorExplicitlySet()) {
+          const clientInfo = underlyingServer.getClientVersion();
+          const clientName = clientInfo?.name ?? "";
+          const detected = detectEditorFromClientName(clientName);
+          if (detected) {
+            setEditorCommand(detected);
+            console.error(`Editor for result files: ${detected} (detected from MCP client: ${clientName})`);
+          }
+        }
+      };
+
       // Register tools (both built-in and custom)
       // All tools are validated and managed by the ToolRegistry
-      registerTools(server);
+      registerTools(mcpServer);
 
-      return server;
+      return mcpServer;
     };
 
     // Resolve transport type (for MCP server)

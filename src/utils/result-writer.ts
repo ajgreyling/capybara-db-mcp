@@ -2,6 +2,7 @@ import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
 import { bigIntReplacer } from "./response-formatter.js";
+import { getEditorCommand } from "../config/editor-command.js";
 
 export type ResultFormat = "csv" | "json" | "markdown";
 
@@ -104,6 +105,11 @@ export function writeResultFile(
 
   fs.writeFileSync(filePath, content, "utf-8");
   const resolvedPath = path.resolve(filePath);
-  exec(`cursor "${resolvedPath}"`, { timeout: 5000 });
+  const editorCmd = getEditorCommand();
+  exec(`${editorCmd} "${resolvedPath}"`, { timeout: 5000 }, (error) => {
+    if (error) {
+      console.error(`[result-writer] Failed to open result file in editor: ${error.message}`);
+    }
+  });
   return resolvedPath;
 }
