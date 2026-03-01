@@ -1,8 +1,17 @@
 # capybara-db-mcp
 
-> **Your data is safe with Capybara.** Just like capybaras are famously safe and peaceful to be around, **capybara-db-mcp keeps your database data safe—your query results are never shared with an LLM.** Data stays on your machine; the model receives only success/failure.
+## ⚠️ Production & Governance Notice
 
-**capybara-db-mcp** is a community fork of [DBHub](https://github.com/bytebase/dbhub) by [Bytebase](https://www.bytebase.com/). The key difference: **DBHub sends query results (rows, columns, counts) directly to the LLM**, which can expose sensitive data. **capybara-db-mcp is PII-safe**: it writes results to local files, opens them in the editor, and returns only success/failure to the LLM—no data or file path ever reaches the model. It also enforces read-only SQL, keeps the same internal names (e.g. `dbhub.toml`) for easy merging from upstream, and adds **default-schema support** for PostgreSQL and multi-database setups.
+This project is intended for development, sandbox, or formally reviewed environments. Before connecting to any production system:
+
+- Conduct a security review
+- Validate data classification and handling requirements
+- Ensure compliance with internal AI and data governance policies
+- Confirm logging, auditing, and DLP controls are in place
+
+This project is designed to reduce the likelihood of exposing query results to LLMs, but it does not replace enterprise security controls and should not be used to bypass governance processes.
+
+**capybara-db-mcp** is a community fork of [DBHub](https://github.com/bytebase/dbhub) by [Bytebase](https://www.bytebase.com/). The key difference: **DBHub sends query results (rows, columns, counts) directly to the LLM**, which can expose sensitive data. capybara-db-mcp is designed to reduce the likelihood of exposing query results to LLMs by writing results to local files, opening them in the editor, and returning status-oriented metadata to the MCP client instead of result sets. It also implements SQL validation intended to restrict execution to read-only statements, keeps the same internal names (e.g. `dbhub.toml`) for easy merging from upstream, and adds **default-schema support** for PostgreSQL and multi-database setups.
 
 - **Original project:** [github.com/bytebase/dbhub](https://github.com/bytebase/dbhub)
 - **This fork:** [github.com/ajgreyling/capybara-db-mcp](https://github.com/ajgreyling/capybara-db-mcp)
@@ -58,9 +67,22 @@ flowchart LR
     M --> Ma
 ```
 
-### PII-safe data flow
+## Security Model Overview
 
-SQL results never reach the LLM. They are written to local files and opened in the editor; only a success/failure status is returned:
+capybara-db-mcp is designed to reduce the likelihood of transmitting query result data to an LLM by isolating result sets to the local filesystem and returning status-oriented metadata to the MCP client.
+
+- **1) LLM generates SQL**: The MCP client sends an `execute_sql` request containing SQL text.
+- **2) Server validates SQL**: The server performs SQL validation intended to restrict execution to read-only statements (e.g., SELECT, WITH, EXPLAIN, SHOW).
+- **3) Query executes against the database**: The validated query runs using the configured connector.
+- **4) Results are written locally**: Result sets are written to `.safe-sql-results/` and opened in the editor (configurable).
+- **5) LLM receives metadata only**: The MCP tool response is formatted to avoid including raw query results in the response payload.
+- **6) Logging remains local**: Operational logs and diagnostic details are written locally.
+
+This design reduces the likelihood of transmitting result data to an LLM, but it does not eliminate operational, environment, or governance risks. Database-level controls (RBAC, network segmentation, auditing) and approved operating procedures remain required.
+
+### Result handling and LLM exposure minimization
+
+Query results are written to local files and opened in the editor; the MCP tool response is formatted to return success/failure metadata rather than result sets:
 
 ```mermaid
 flowchart TB
@@ -93,29 +115,21 @@ flowchart TB
 
 capybara-db-mcp is a zero-dependency, token-efficient MCP server implementing the Model Context Protocol (MCP). It supports the same features as DBHub, plus a default schema.
 
-**This fork is unconditionally read-only.** Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is allowed. Write operations (UPDATE, DELETE, INSERT, MERGE, etc.) are never permitted.
+**Read-only enforcement**: The server implements SQL validation intended to restrict execution to read-only statements (e.g., SELECT, WITH, EXPLAIN, SHOW). This enforcement reduces the risk of accidental writes, but it does not replace database-level RBAC or permissions configuration.
 
-**Your data is safe with Capybara.** Capybaras are famously safe and peaceful—and so is your data. Query results are **never shared with an LLM**. Raw data is written to local files (`.safe-sql-results/`) and opened in the editor; the LLM receives only success/failure. No file path, row count, or column names are returned (to prevent exfiltration via dynamic SQL). Error responses are also PII-safe: SQL statements and parameter values are never sent to the LLM; they are logged to stderr for local debugging, and database error messages are truncated. This prevents personally identifiable information (PII) from ever reaching the model. There is a default timeout of 60 seconds to ensure queries are not tying up the server. 
+**Output isolation controls**: By default, query results are written to local files (`.safe-sql-results/`) and opened in the editor; tool responses are formatted to avoid returning result sets. Error payloads are formatted to avoid including SQL statements and parameter values; diagnostic details are logged locally, and database error messages are truncated. These mechanisms are designed to reduce LLM data exposure risk when used appropriately, and do not constitute regulatory compliance or replace enterprise data governance and DLP controls.
 
 - **Local Development First**: Zero dependency, token efficient with just two MCP tools to maximize context window
 - **Multi-Database**: PostgreSQL, MySQL, MariaDB, SQL Server, and SQLite through a single interface
 - **Multi-Connection**: Connect to multiple databases simultaneously with TOML configuration
 - **Default schema**: Use `--schema` (or TOML `schema = "..."`) so PostgreSQL uses that schema for `execute_sql` and `search_objects` is restricted to it (see below)
-- **Guardrails**: Unconditionally read-only, row limiting, and a safe 60-second query timeout default (overridable per source via `query_timeout` in `dbhub.toml`) to prevent runaway operations
-- **PII-safe**: Query results are written to `.safe-sql-results/` and opened in the editor; only success/failure is sent to the LLM—no file path, row data, count, or column names (prevents exfiltration via dynamic column aliasing). Error responses are hardened: SQL and parameter values are logged locally, not returned to the LLM; database error text is truncated.
+- **Guardrails**: SQL read-only validation, row limiting, and a 60-second query timeout default (overridable per source via `query_timeout` in `dbhub.toml`) to reduce runaway operations
+- **Designed to reduce LLM data exposure**: Results are written to `.safe-sql-results/` and opened in the editor; tool responses are formatted to avoid returning result sets (including file path, row data, row counts, or column names). Error responses are formatted to avoid including SQL text and parameter values; database error text is truncated and detailed diagnostics are logged locally.
 - **Secure Access**: SSH tunneling and SSL/TLS encryption
 
 ## Why Capybara?
 
-The capybara is the spirit animal of capybara-db-mcp: calm, social, and famously safe to be around. **Just as capybaras are safe, your database data stays safe—never shared with an LLM**. It reflects the project's philosophy of peaceful coexistence, predictable behavior, and built-in guardrails.
-
-### The Capybara: A Paragon of Peaceful Coexistence
-
-- **Docile temperament**: Capybaras are known for gentle, non-aggressive behavior and are often seen peacefully sharing space with many species.
-- **Herbivorous nature**: As herbivores, they pose no predatory threat to humans or other animals.
-- **Social harmony**: They live in cooperative groups, reinforcing a "safe by default" ecosystem.
-- **Adaptability**: They thrive in different environments, reducing conflict and stress.
-- **Confident calm**: Other animals prefer their company, and capybaras are rarely rattled by neighbors around them.
+Capybara branding reflects a calm, predictable design philosophy: minimal surface area, conservative defaults, and straightforward operational behavior. Branding is not a security or compliance claim; apply your organization’s governance and review standards before production use.
 
 ## Supported Databases
 
@@ -170,13 +184,15 @@ schema = "my_app_schema"
 
 Full DBHub docs (including TOML and command-line options) apply; see [dbhub.ai](https://dbhub.ai) and [Command-Line Options](https://dbhub.ai/config/command-line).
 
-### PII-safe output
+### Output isolation (designed to reduce LLM exposure)
 
-By default, `execute_sql` and custom tools write query results to `.safe-sql-results/` in your project directory and open them in the editor. The MCP tool response sent to the LLM contains only success/failure. **No file path, row data, row count, or column names** are returned—preventing both direct PII leakage and exfiltration via dynamic SQL (e.g. `SELECT secret AS "password_is_hunter2"`). Error responses are likewise hardened: SQL statements and parameter values are never included in tool error text sent to the LLM; they are logged to stderr for debugging. Database error messages are truncated before being returned. The user inspects results in the editor. Output format is configurable via `--output-format=csv|json|markdown` (default: `csv`).
+By default, `execute_sql` and custom tools write query results to `.safe-sql-results/` in your project directory and open them in the editor. The MCP tool response sent back to the MCP client is formatted to return success/failure metadata rather than result sets. This reduces the likelihood of transmitting result data to an LLM, but it does not eliminate data handling risk and does not by itself satisfy regulatory or compliance requirements.
 
-### Read-only (unconditional)
+To reduce exfiltration risk via dynamic SQL (e.g. `SELECT secret AS "password_is_hunter2"`), tool responses are formatted to avoid including file paths, row data, row counts, or column names. Error responses are formatted to avoid including SQL statements or parameter values; those details are logged locally for debugging. Database error messages are truncated before being returned.
 
-This fork is unconditionally read-only. Write operations (UPDATE, DELETE, INSERT, MERGE, DROP, CREATE, ALTER, TRUNCATE, etc.) are never allowed. Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, DESCRIBE, etc.) is permitted.
+### Read-only enforcement
+
+The server implements SQL validation intended to restrict execution to read-only statements (e.g., SELECT, WITH, EXPLAIN, SHOW, DESCRIBE). This enforcement is a guardrail and does not substitute for database-level RBAC, permissions, or audit controls.
 
 ## Workbench
 

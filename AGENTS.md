@@ -2,19 +2,51 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Your data is safe with Capybara.** Just like capybaras are famously safe and peaceful, **capybara-db-mcp never shares your query results with an LLM.** Data stays on the user's machine; the model receives only success/failure.
+## ⚠️ Production & Governance Notice
+
+This project is intended for development, sandbox, or formally reviewed environments. Before connecting to any production system:
+
+- Conduct a security review
+- Validate data classification and handling requirements
+- Ensure compliance with internal AI and data governance policies
+- Confirm logging, auditing, and DLP controls are in place
+
+capybara-db-mcp is designed to reduce the likelihood of exposing query results to LLMs by isolating result sets to local files and returning status-oriented metadata. This does not replace enterprise security controls and should not be used to bypass governance processes.
 
 This codebase is the **capybara-db-mcp** fork ([github.com/ajgreyling/capybara-db-mcp](https://github.com/ajgreyling/capybara-db-mcp)) of DBHub; it keeps internal names (e.g. `dbhub.toml`) for upstream compatibility and adds `--schema` / default schema support.
 
-**This fork is PII-safe.** Query results from `execute_sql` and custom tools are never sent to the LLM. Data is written to `.safe-sql-results/` and opened in the editor; only success/failure is returned to the LLM (no file path, count, or column names to prevent exfiltration via dynamic SQL). Error responses are hardened: SQL statements and parameter values are never included in tool error text; they are logged to stderr. Database error messages are truncated via `truncateForLLM` before being returned. See `src/utils/result-writer.ts`, `createPiiSafeToolResponse` and `truncateForLLM` in `src/utils/response-formatter.ts`, and `src/tools/custom-tool-handler.ts`.
+### Security model (risk-reduction)
+
+The core design is intended to reduce the likelihood of transmitting query result data to an LLM:
+
+- Tool responses are formatted to avoid including raw query results in the response payload
+- Result sets are written to `.safe-sql-results/` and opened locally in the editor
+- Error payloads are formatted to avoid including SQL statements and parameter values; diagnostic details are logged locally
+- Database error messages are truncated via `truncateForLLM` before being returned
+
+These mechanisms reduce LLM data exposure risk when used appropriately, but they do not eliminate operational risk or substitute for formal security review, DLP controls, or database-level access controls. See `src/utils/result-writer.ts`, `createPiiSafeToolResponse` and `truncateForLLM` in `src/utils/response-formatter.ts`, and `src/tools/custom-tool-handler.ts`.
 
 # DBHub Development Guidelines
 
 DBHub is a zero-dependency, token efficient database MCP server implementing the Model Context Protocol (MCP) server interface. This lightweight server bridges MCP-compatible clients (Claude Desktop, Claude Code, Cursor) with various database systems.
 
-**This fork is unconditionally read-only.** Write operations are never allowed. Only read-only SQL (SELECT, WITH, EXPLAIN, SHOW, etc.) is permitted.
+## Governance Expectations
 
-**Your data is safe with Capybara.** Query results are written to `.safe-sql-results/` and opened in the editor; only success/failure is sent to the LLM (no file path, row count, or column names). Actual data is never shared with an LLM. Configure output format via `--output-format=csv|json|markdown`.
+Agents interacting with this MCP server are expected to:
+
+- Avoid connecting to production systems without explicit authorization and appropriate controls
+- Respect data classification and retention policies; avoid querying sensitive data unnecessarily
+- Follow least-privilege principles (database roles, network access, and scoped credentials)
+- Operate only in approved environments with appropriate monitoring, logging, and auditing
+- Treat generated SQL as untrusted until validated by controls and reviewed for appropriateness
+
+## Read-only enforcement
+
+This fork implements SQL validation intended to restrict execution to read-only statements (e.g., SELECT, WITH, EXPLAIN, SHOW). This enforcement reduces the risk of accidental writes but does not replace database-level RBAC, permissions, or auditing.
+
+### Output isolation (designed to reduce LLM exposure)
+
+Query results are written to `.safe-sql-results/` and opened in the editor; tool responses are formatted to return success/failure metadata rather than raw result sets (including file paths, row counts, or column names). This reduces the likelihood of sending result data to an LLM, but does not eliminate data handling risk. Configure output format via `--output-format=csv|json|markdown`.
 
 ## Commands
 
@@ -38,8 +70,8 @@ src/
 │   ├── sqlserver/       # SQL Server connector
 │   └── sqlite/          # SQLite connector
 ├── tools/               # MCP tool handlers
-│   ├── execute-sql.ts   # SQL execution handler (PII-safe: writes to file)
-│   ├── custom-tool-handler.ts  # Custom SQL tools (PII-safe: error path hardened)
+│   ├── execute-sql.ts   # SQL execution handler (writes results to local files)
+│   ├── custom-tool-handler.ts  # Custom SQL tools (hardened error formatting)
 │   └── search-objects.ts  # Unified search/list with progressive disclosure
 ├── utils/               # Shared utilities
 │   ├── dsn-obfuscator.ts# DSN security
@@ -65,7 +97,7 @@ Key architectural patterns:
   - Tests in `src/__tests__/json-rpc-integration.test.ts`
 - **Tool Handlers**: Clean separation of MCP protocol concerns
   - Tools accept optional `source_id` parameter for multi-database routing
-- **PII-Safe Output**: `execute_sql` and custom tools never return row data to the LLM. Results are written to `.safe-sql-results/`; tool responses contain only success/failure (no file path, count, or columns to prevent exfiltration). Error responses do not include SQL or parameter values; they are logged to stderr. Database error text is truncated. Output format: `--output-format=csv|json|markdown`
+- **Output Isolation Controls (risk reduction)**: `execute_sql` and custom tools write results to `.safe-sql-results/`; tool responses are formatted to be metadata-oriented (success/failure) rather than returning result sets, and are designed to avoid including file paths, row counts, or column names (to reduce exfiltration risk). Error responses are formatted to avoid including SQL statements or parameter values; those details are logged locally. Database error text is truncated. Output format: `--output-format=csv|json|markdown`
 - **Token-Efficient Schema Exploration**: Unified search/list tool with progressive disclosure
   - `search_objects`: Single tool for both pattern-based search and listing all objects
   - Pattern parameter defaults to `%` (match all) - optional for listing use cases
@@ -101,7 +133,7 @@ DBHub supports three configuration methods (in priority order):
   user = "root"
   password = "secret"
 
-  # Tool configuration: this fork is unconditionally read-only
+  # Tool configuration: read-only enforcement is applied by SQL validation
   [[tools]]
   name = "execute_sql"
   source = "prod_pg"
@@ -114,7 +146,7 @@ DBHub supports three configuration methods (in priority order):
 - Features:
   - Per-source settings: SSH tunnels, timeouts, SSL configuration
   - Query timeout: Defaults to 60 seconds for all non-SQLite connectors; override with `query_timeout = N` (seconds) in a `[[sources]]` block
-  - Per-tool settings: `max_rows` (configured in `[[tools]]` section, not `[[sources]]`). This fork is unconditionally read-only; `readonly = false` is rejected.
+  - Per-tool settings: `max_rows` (configured in `[[tools]]` section, not `[[sources]]`). This fork enforces read-only behavior via SQL validation; `readonly = false` is rejected.
   - Custom tools: Define reusable, parameterized SQL operations
   - Path expansion for `~/` in file paths
   - Automatic password redaction in logs
@@ -136,7 +168,7 @@ DBHub supports three configuration methods (in priority order):
 - `--port`: HTTP server port (default: 8080)
 - `--config`: Path to TOML configuration file
 - `--demo`: Use bundled SQLite employee database
-- `--output-format`: Result file format for PII-safe output: `csv` (default), `json`, or `markdown`
+- `--output-format`: Result file format for local result files: `csv` (default), `json`, or `markdown`
 - `--editor`: CLI command to open result files (e.g., `cursor`, `code`). Auto-detected from MCP client (Cursor/VS Code) when not set. Override via `--editor=code` or `EDITOR_COMMAND` env var.
 - `--max-rows`: Limit rows returned from SELECT queries (deprecated - use TOML configuration instead)
 - SSH tunnel options: `--ssh-host`, `--ssh-port`, `--ssh-user`, `--ssh-password`, `--ssh-key`, `--ssh-passphrase`
