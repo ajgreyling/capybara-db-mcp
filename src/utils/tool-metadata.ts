@@ -5,7 +5,7 @@ import { normalizeSourceId } from "./normalize-id.js";
 import { executeSqlSchema } from "../tools/execute-sql.js";
 import { getToolRegistry } from "../tools/registry.js";
 import { BUILTIN_TOOL_EXECUTE_SQL } from "../tools/builtin-tools.js";
-import type { ParameterConfig, ToolConfig } from "../types/config.js";
+import type { ToolConfig } from "../types/config.js";
 
 /**
  * Tool parameter definition for API responses
@@ -24,7 +24,6 @@ export interface Tool {
   name: string;
   description: string;
   parameters: ToolParameter[];
-  statement?: string;
   readonly?: boolean;
   max_rows?: number;
 }
@@ -156,24 +155,6 @@ export function getSearchObjectsMetadata(sourceId: string): { name: string; desc
 }
 
 /**
- * Convert custom tool parameter configs to Tool parameter format
- * @param params - Parameter configurations from custom tool
- * @returns Array of tool parameters
- */
-function customParamsToToolParams(params: ParameterConfig[] | undefined): ToolParameter[] {
-  if (!params || params.length === 0) {
-    return [];
-  }
-
-  return params.map((param) => ({
-    name: param.name,
-    type: param.type,
-    required: param.required !== false && param.default === undefined,
-    description: param.description,
-  }));
-}
-
-/**
  * Build execute_sql tool metadata for API response
  */
 function buildExecuteSqlTool(sourceId: string, toolConfig?: ToolConfig): Tool {
@@ -230,7 +211,7 @@ function buildSearchObjectsTool(sourceId: string): Tool {
         name: "detail_level",
         type: "string",
         required: false,
-        description: "Detail: names (minimal), summary (metadata), full (all)",
+        description: "Detail: names only (PII-safe; summary/full disabled)",
       },
       {
         name: "limit",
@@ -240,20 +221,6 @@ function buildSearchObjectsTool(sourceId: string): Tool {
       },
     ],
     readonly: true, // search_objects is always readonly
-  };
-}
-
-/**
- * Build custom tool metadata for API response
- */
-function buildCustomTool(toolConfig: ToolConfig): Tool {
-  return {
-    name: toolConfig.name,
-    description: toolConfig.description!,
-    parameters: customParamsToToolParams(toolConfig.parameters),
-    statement: toolConfig.statement,
-    readonly: true, // This fork is unconditionally read-only
-    max_rows: toolConfig.max_rows,
   };
 }
 
@@ -268,16 +235,11 @@ export function getToolsForSource(sourceId: string): Tool[] {
   const registry = getToolRegistry();
   const enabledToolConfigs = registry.getEnabledToolConfigs(sourceId);
 
-  // Uniform iteration: map each enabled tool config to its API representation
   return enabledToolConfigs.map((toolConfig) => {
-    // Dispatch based on tool name
     if (toolConfig.name === "execute_sql") {
       return buildExecuteSqlTool(sourceId, toolConfig);
-    } else if (toolConfig.name === "search_objects") {
-      return buildSearchObjectsTool(sourceId);
     } else {
-      // Custom tool
-      return buildCustomTool(toolConfig);
+      return buildSearchObjectsTool(sourceId);
     }
   });
 }

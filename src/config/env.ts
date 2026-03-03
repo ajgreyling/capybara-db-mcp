@@ -327,6 +327,21 @@ export function resolvePort(): { port: number; source: string } {
   return { port: 8080, source: "default" };
 }
 
+/**
+ * Resolve HTTP server bind address.
+ * Default 127.0.0.1 (local-only). Use 0.0.0.0 for Docker/network access via --bind=0.0.0.0 or BIND_ADDRESS.
+ */
+export function resolveBindAddress(): { host: string; source: string } {
+  const args = parseCommandLineArgs();
+  if (args.bind) {
+    return { host: args.bind, source: "command line argument" };
+  }
+  if (process.env.BIND_ADDRESS) {
+    return { host: process.env.BIND_ADDRESS, source: "environment variable" };
+  }
+  return { host: "127.0.0.1", source: "default" };
+}
+
 export type ResultFormat = "csv" | "json" | "markdown";
 
 /**

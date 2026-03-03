@@ -276,7 +276,7 @@ describe('JSON RPC Integration Tests', () => {
       expect(response).toHaveProperty('result');
       const result = parseExecuteSqlResponse(response);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('no such table');
+      expect(result.error).toBe('Execution failed. See server logs for details.');
       expect(result.code).toBe('EXECUTION_ERROR');
     });
 

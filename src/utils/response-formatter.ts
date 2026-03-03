@@ -14,15 +14,19 @@ export function bigIntReplacer(_key: string, value: any): any {
   return value;
 }
 
-const MAX_ERROR_LENGTH = 256;
+/** Generic error message returned to client/LLM; avoids leaking DB-derived text. */
+const GENERIC_EXECUTION_ERROR = "Execution failed. See server logs for details.";
+
+/** Generic search error message; avoids leaking DB-derived text. */
+const GENERIC_SEARCH_ERROR = "Search failed. See server logs for details.";
 
 /**
- * Truncate error messages sent to the LLM to limit PII leakage from database error text.
- * Full message is logged to stderr by callers.
+ * Create a PII-safe tool error response with generic message only (no DB error text).
+ * Use for execution/search failures where the real error may contain sensitive data.
  */
-export function truncateForLLM(message: string): string {
-  if (message.length <= MAX_ERROR_LENGTH) return message;
-  return message.slice(0, MAX_ERROR_LENGTH) + "... (truncated, see server logs)";
+export function createGenericToolErrorResponse(code: string = "EXECUTION_ERROR"): ReturnType<typeof createToolErrorResponse> {
+  const message = code === "SEARCH_ERROR" ? GENERIC_SEARCH_ERROR : GENERIC_EXECUTION_ERROR;
+  return createToolErrorResponse(message, code);
 }
 
 /**

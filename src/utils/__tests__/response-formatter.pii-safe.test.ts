@@ -1,18 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { createPiiSafeToolResponse, truncateForLLM } from "../response-formatter.js";
+import { createPiiSafeToolResponse, createGenericToolErrorResponse } from "../response-formatter.js";
 
-describe("truncateForLLM", () => {
-  it("returns message unchanged when under max length", () => {
-    const short = "connection refused";
-    expect(truncateForLLM(short)).toBe(short);
+describe("createGenericToolErrorResponse", () => {
+  it("returns generic message (no DB-derived text) for EXECUTION_ERROR", () => {
+    const response = createGenericToolErrorResponse("EXECUTION_ERROR");
+    const payload = JSON.parse(response.content[0].text);
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBe("Execution failed. See server logs for details.");
+    expect(payload.code).toBe("EXECUTION_ERROR");
+    expect(payload.error).not.toMatch(/connection refused|syntax error|column/i);
   });
 
-  it("truncates long messages and appends hint", () => {
-    const long = "x".repeat(300);
-    const result = truncateForLLM(long);
-    expect(result.length).toBeLessThan(300);
-    expect(result).toContain("... (truncated, see server logs)");
-    expect(result.slice(0, 256)).toBe("x".repeat(256));
+  it("returns generic message for SEARCH_ERROR", () => {
+    const response = createGenericToolErrorResponse("SEARCH_ERROR");
+    const payload = JSON.parse(response.content[0].text);
+    expect(payload.error).toBe("Search failed. See server logs for details.");
+    expect(payload.code).toBe("SEARCH_ERROR");
   });
 });
 

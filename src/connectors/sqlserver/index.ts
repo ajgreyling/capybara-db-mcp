@@ -546,11 +546,7 @@ export class SQLServerConnector implements Connector {
       try {
         result = await request.query(processedSQL);
       } catch (error) {
-        if (parameters && parameters.length > 0) {
-          console.error(`[SQL Server executeSQL] ERROR: ${(error as Error).message}`);
-          console.error(`[SQL Server executeSQL] SQL: ${processedSQL}`);
-          console.error(`[SQL Server executeSQL] Parameters: ${JSON.stringify(parameters)}`);
-        }
+        console.error(`[SQL Server executeSQL] Execution failed`);
         throw error;
       }
 

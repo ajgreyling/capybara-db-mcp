@@ -127,17 +127,12 @@ export interface components {
             /** @description Tool input parameters */
             parameters: components["schemas"]["ToolParameter"][];
             /**
-             * @description SQL statement template for custom tools (with parameter placeholders)
-             * @example SELECT * FROM users WHERE id = $1
-             */
-            statement?: string;
-            /**
-             * @description Whether the tool is restricted to read-only operations (execute_sql and custom tools only)
+             * @description Whether the tool is restricted to read-only operations (execute_sql only)
              * @example true
              */
             readonly?: boolean;
             /**
-             * @description Maximum number of rows returned by SELECT queries (execute_sql and custom tools only)
+             * @description Maximum number of rows returned by SELECT queries (execute_sql only)
              * @example 1000
              */
             max_rows?: number;

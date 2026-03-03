@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 
 import { ConnectorManager } from "./connectors/manager.js";
 import { ConnectorRegistry } from "./connectors/interface.js";
-import { resolveTransport, resolvePort, resolveSourceConfigs, resolveOutputFormat, resolveEditorCommand, isDemoMode } from "./config/env.js";
+import { resolveTransport, resolvePort, resolveBindAddress, resolveSourceConfigs, resolveOutputFormat, resolveEditorCommand, isDemoMode } from "./config/env.js";
 import { setOutputFormat } from "./config/output-format.js";
 import {
   setEditorCommand,
@@ -109,7 +109,7 @@ See documentation for more details on configuring database connections.
     // Connect to database(s) - works uniformly for all modes (demo, single DSN, multi-source TOML)
     await connectorManager.connectWithSources(sources);
 
-    // Initialize tool registry (manages both built-in and custom tools)
+    // Initialize tool registry (manages built-in tools)
     // This must happen AFTER ConnectorManager is initialized so source validation works
     const { initializeToolRegistry } = await import("./tools/registry.js");
     initializeToolRegistry({
@@ -148,8 +148,7 @@ See documentation for more details on configuring database connections.
         }
       };
 
-      // Register tools (both built-in and custom)
-      // All tools are validated and managed by the ToolRegistry
+      // Register tools (built-in only; validated by ToolRegistry)
       registerTools(mcpServer);
 
       return mcpServer;
@@ -158,8 +157,9 @@ See documentation for more details on configuring database connections.
     // Resolve transport type (for MCP server)
     const transportData = resolveTransport();
 
-    // Resolve port for HTTP server (only needed for http transport)
+    // Resolve port and bind address for HTTP server (only needed for http transport)
     const port = transportData.type === "http" ? resolvePort().port : null;
+    const bindAddress = transportData.type === "http" ? resolveBindAddress() : null;
 
     // Print ASCII art banner with version and slogan
     // Collect active modes
@@ -195,16 +195,24 @@ See documentation for more details on configuring database connections.
       // Enable JSON parsing
       app.use(express.json());
 
-      // Handle CORS and security headers
+      // CORS: strict allowlist (no arbitrary origin reflection)
+      const ALLOWED_ORIGINS = [
+        "http://localhost",
+        "http://127.0.0.1",
+        `http://localhost:${port}`,
+        `http://127.0.0.1:${port}`,
+        "http://localhost:5173",
+      ];
       app.use((req, res, next) => {
         const origin = req.headers.origin;
+        if (origin && ALLOWED_ORIGINS.includes(origin)) {
+          res.header("Access-Control-Allow-Origin", origin);
+        }
+        res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        res.header("Access-Control-Allow-Headers", "Content-Type, Mcp-Session-Id");
+        res.header("Access-Control-Allow-Credentials", "true");
 
-        res.header('Access-Control-Allow-Origin', origin || 'http://localhost');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Mcp-Session-Id');
-        res.header('Access-Control-Allow-Credentials', 'true');
-
-        if (req.method === 'OPTIONS') {
+        if (req.method === "OPTIONS") {
           return res.sendStatus(200);
         }
         next();
@@ -263,8 +271,8 @@ See documentation for more details on configuring database connections.
         });
       }
 
-      // Start the HTTP server
-      app.listen(port, '0.0.0.0', () => {
+      // Start the HTTP server (default bind 127.0.0.1; use --bind=0.0.0.0 for network access)
+      app.listen(port, bindAddress!.host, () => {
         // In development mode, suggest using the Vite dev server for hot reloading
         if (process.env.NODE_ENV === 'development') {
           console.error('Development mode detected!');

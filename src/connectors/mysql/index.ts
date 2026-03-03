@@ -538,9 +538,7 @@ export class MySQLConnector implements Connector {
         try {
           results = await conn.query({ sql: processedSQL, timeout: this.queryTimeoutMs }, parameters);
         } catch (error) {
-          console.error(`[MySQL executeSQL] ERROR: ${(error as Error).message}`);
-          console.error(`[MySQL executeSQL] SQL: ${processedSQL}`);
-          console.error(`[MySQL executeSQL] Parameters: ${JSON.stringify(parameters)}`);
+          console.error(`[MySQL executeSQL] Execution failed`);
           throw error;
         }
       } else {

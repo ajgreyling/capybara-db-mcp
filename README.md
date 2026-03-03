@@ -80,6 +80,8 @@ capybara-db-mcp is designed to reduce the likelihood of transmitting query resul
 
 This design reduces the likelihood of transmitting result data to an LLM, but it does not eliminate operational, environment, or governance risks. Database-level controls (RBAC, network segmentation, auditing) and approved operating procedures remain required.
 
+For detailed PII safety mechanisms (result isolation, generic errors, log redaction, search_objects names-only, request telemetry redaction, HTTP hardening), see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ### Result handling and LLM exposure minimization
 
 Query results are written to local files and opened in the editor; the MCP tool response is formatted to return success/failure metadata rather than result sets:
@@ -117,14 +119,14 @@ capybara-db-mcp is a zero-dependency, token-efficient MCP server implementing th
 
 **Read-only enforcement**: The server implements SQL validation intended to restrict execution to read-only statements (e.g., SELECT, WITH, EXPLAIN, SHOW). This enforcement reduces the risk of accidental writes, but it does not replace database-level RBAC or permissions configuration.
 
-**Output isolation controls**: By default, query results are written to local files (`.safe-sql-results/`) and opened in the editor; tool responses are formatted to avoid returning result sets. Error payloads are formatted to avoid including SQL statements and parameter values; diagnostic details are logged locally, and database error messages are truncated. These mechanisms are designed to reduce LLM data exposure risk when used appropriately, and do not constitute regulatory compliance or replace enterprise data governance and DLP controls.
+**Output isolation controls**: By default, query results are written to local files (`.safe-sql-results/`) and opened in the editor; tool responses are formatted to avoid returning result sets. Error responses return generic messages only (e.g. "Execution failed. See server logs for details."); no SQL, parameter values, or database error text are returned. Logs never include SQL or parameter values. These mechanisms are designed to reduce LLM data exposure risk when used appropriately, and do not constitute regulatory compliance or replace enterprise data governance and DLP controls.
 
 - **Local Development First**: Zero dependency, token efficient with just two MCP tools to maximize context window
 - **Multi-Database**: PostgreSQL, MySQL, MariaDB, SQL Server, and SQLite through a single interface
 - **Multi-Connection**: Connect to multiple databases simultaneously with TOML configuration
 - **Default schema**: Use `--schema` (or TOML `schema = "..."`) so PostgreSQL uses that schema for `execute_sql` and `search_objects` is restricted to it (see below)
 - **Guardrails**: SQL read-only validation, row limiting, and a 60-second query timeout default (overridable per source via `query_timeout` in `dbhub.toml`) to reduce runaway operations
-- **Designed to reduce LLM data exposure**: Results are written to `.safe-sql-results/` and opened in the editor; tool responses are formatted to avoid returning result sets (including file path, row data, row counts, or column names). Error responses are formatted to avoid including SQL text and parameter values; database error text is truncated and detailed diagnostics are logged locally.
+- **Designed to reduce LLM data exposure**: Results are written to `.safe-sql-results/` and opened in the editor; tool responses return only success/failure metadata (no file path, row data, row counts, or column names). Error responses use generic messages only; no SQL, parameter values, or database error text reach the client. Logs are redacted to avoid SQL and parameter values.
 - **Secure Access**: SSH tunneling and SSL/TLS encryption
 
 ## Why Capybara?
@@ -138,8 +140,7 @@ PostgreSQL, MySQL, SQL Server, MariaDB, and SQLite.
 ## MCP Tools
 
 - **[execute_sql](https://dbhub.ai/tools/execute-sql)**: Execute SQL queries with transaction support and safety controls
-- **[search_objects](https://dbhub.ai/tools/search-objects)**: Search and explore database schemas, tables, columns, indexes, and procedures with progressive disclosure
-- **[Custom Tools](https://dbhub.ai/tools/custom-tools)**: Define reusable, parameterized SQL operations in your `dbhub.toml` configuration file
+- **[search_objects](https://dbhub.ai/tools/search-objects)**: Search and explore database schemas, tables, columns, indexes, and procedures (names only; summary/full metadata disabled for PII safety)
 
 ## Default schema (`--schema`)
 
@@ -186,9 +187,9 @@ Full DBHub docs (including TOML and command-line options) apply; see [dbhub.ai](
 
 ### Output isolation (designed to reduce LLM exposure)
 
-By default, `execute_sql` and custom tools write query results to `.safe-sql-results/` in your project directory and open them in the editor. The MCP tool response sent back to the MCP client is formatted to return success/failure metadata rather than result sets. This reduces the likelihood of transmitting result data to an LLM, but it does not eliminate data handling risk and does not by itself satisfy regulatory or compliance requirements.
+By default, `execute_sql` writes query results to `.safe-sql-results/` in your project directory and opens them in the editor. The MCP tool response sent back to the MCP client is formatted to return success/failure metadata rather than result sets. This reduces the likelihood of transmitting result data to an LLM, but it does not eliminate data handling risk and does not by itself satisfy regulatory or compliance requirements.
 
-To reduce exfiltration risk via dynamic SQL (e.g. `SELECT secret AS "password_is_hunter2"`), tool responses are formatted to avoid including file paths, row data, row counts, or column names. Error responses are formatted to avoid including SQL statements or parameter values; those details are logged locally for debugging. Database error messages are truncated before being returned.
+To reduce exfiltration risk via dynamic SQL (e.g. `SELECT secret AS "password_is_hunter2"`), tool responses are formatted to avoid including file paths, row data, row counts, or column names. Error responses return generic messages only (e.g. "Execution failed. See server logs for details."); no SQL, parameter values, or database error text are returned. Logs never include SQL or parameter values.
 
 ### Read-only enforcement
 

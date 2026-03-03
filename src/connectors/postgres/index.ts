@@ -454,9 +454,7 @@ export class PostgresConnector implements Connector {
           try {
             result = await client.query(processedStatement, parameters);
           } catch (error) {
-            console.error(`[PostgreSQL executeSQL] ERROR: ${(error as Error).message}`);
-            console.error(`[PostgreSQL executeSQL] SQL: ${processedStatement}`);
-            console.error(`[PostgreSQL executeSQL] Parameters: ${JSON.stringify(parameters)}`);
+            console.error(`[PostgreSQL executeSQL] Execution failed`);
             throw error;
           }
         } else {

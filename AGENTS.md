@@ -19,12 +19,17 @@ This codebase is the **capybara-db-mcp** fork ([github.com/ajgreyling/capybara-d
 
 The core design is intended to reduce the likelihood of transmitting query result data to an LLM:
 
-- Tool responses are formatted to avoid including raw query results in the response payload
-- Result sets are written to `.safe-sql-results/` and opened locally in the editor
-- Error payloads are formatted to avoid including SQL statements and parameter values; diagnostic details are logged locally
-- Database error messages are truncated via `truncateForLLM` before being returned
+- **Result isolation**: Result sets are written to `.safe-sql-results/` and opened locally in the editor; tool responses return only success/failure metadata (no file paths, row counts, or column names). See `createPiiSafeToolResponse` in `src/utils/response-formatter.ts` and `src/utils/result-writer.ts`.
+- **Generic errors**: Execution and search errors return generic messages only (`Execution failed. See server logs for details.`); no SQL, parameter values, or DB error text are returned to the client. See `createGenericToolErrorResponse` in `src/utils/response-formatter.ts`.
+- **Log redaction**: Stderr logs do not include SQL statements or parameter values; only tool name and status are logged.
+- **search_objects**: Returns names only (summary/full detail levels disabled) to avoid leaking schema metadata.
+- **Read-only bypass prevention**: SQL validation rejects writable CTEs, `EXPLAIN ANALYZE` writes, and `SELECT INTO OUTFILE`; connector-level read-only is enforced for PostgreSQL and SQLite. See `src/utils/allowed-keywords.ts`.
+- **Request telemetry**: `/api/requests` redacts SQL and error text in responses; `trackToolRequest` stores only `[redacted]` for those fields.
+- **HTTP defaults**: Bind address defaults to `127.0.0.1`; CORS uses a strict allowlist. Use `--bind=0.0.0.0` for network access.
 
-These mechanisms reduce LLM data exposure risk when used appropriately, but they do not eliminate operational risk or substitute for formal security review, DLP controls, or database-level access controls. See `src/utils/result-writer.ts`, `createPiiSafeToolResponse` and `truncateForLLM` in `src/utils/response-formatter.ts`, and `src/tools/custom-tool-handler.ts`.
+These mechanisms reduce LLM data exposure risk when used appropriately, but they do not eliminate operational risk or substitute for formal security review, DLP controls, or database-level access controls.
+
+**Detailed architecture:** See [ARCHITECTURE.md](ARCHITECTURE.md) for information flow diagrams, check locations, and full PII safety mechanism documentation.
 
 # DBHub Development Guidelines
 
@@ -59,7 +64,7 @@ Query results are written to `.safe-sql-results/` and opened in the editor; tool
 
 ## Architecture Overview
 
-The codebase follows a modular architecture centered around the MCP protocol:
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed information flow, PII safety checks, and diagrams. The codebase follows a modular architecture centered around the MCP protocol:
 
 ```
 src/
@@ -71,7 +76,6 @@ src/
 │   └── sqlite/          # SQLite connector
 ├── tools/               # MCP tool handlers
 │   ├── execute-sql.ts   # SQL execution handler (writes results to local files)
-│   ├── custom-tool-handler.ts  # Custom SQL tools (hardened error formatting)
 │   └── search-objects.ts  # Unified search/list with progressive disclosure
 ├── utils/               # Shared utilities
 │   ├── dsn-obfuscator.ts# DSN security
@@ -97,13 +101,11 @@ Key architectural patterns:
   - Tests in `src/__tests__/json-rpc-integration.test.ts`
 - **Tool Handlers**: Clean separation of MCP protocol concerns
   - Tools accept optional `source_id` parameter for multi-database routing
-- **Output Isolation Controls (risk reduction)**: `execute_sql` and custom tools write results to `.safe-sql-results/`; tool responses are formatted to be metadata-oriented (success/failure) rather than returning result sets, and are designed to avoid including file paths, row counts, or column names (to reduce exfiltration risk). Error responses are formatted to avoid including SQL statements or parameter values; those details are logged locally. Database error text is truncated. Output format: `--output-format=csv|json|markdown`
-- **Token-Efficient Schema Exploration**: Unified search/list tool with progressive disclosure
-  - `search_objects`: Single tool for both pattern-based search and listing all objects
-  - Pattern parameter defaults to `%` (match all) - optional for listing use cases
-  - Detail levels: `names` (minimal), `summary` (with metadata), `full` (complete structure)
+- **Output Isolation Controls (risk reduction)**: `execute_sql` writes results to `.safe-sql-results/`; tool responses return only success/failure metadata (no file paths, row counts, or column names). Errors return generic messages only; SQL and parameter values are never returned or logged. Output format: `--output-format=csv|json|markdown`
+- **Token-Efficient Schema Exploration**: Unified search/list tool
+  - `search_objects`: Single tool for pattern-based search and listing; returns names only (PII-safe; summary/full disabled)
+  - Pattern parameter defaults to `%` (match all)
   - Supports: schemas, tables, columns, procedures, indexes
-  - Inspired by Anthropic's MCP code execution patterns for reducing token usage
 - **Integration Test Base**: Shared test utilities for consistent connector testing
 
 ## Configuration
@@ -116,7 +118,7 @@ DBHub supports three configuration methods (in priority order):
 - Create `dbhub.toml` in your project directory or use `--config=path/to/config.toml`
 - Configuration structure:
   - `[[sources]]` - Database connection definitions with unique `id` fields
-  - `[[tools]]` - Tool configuration (execution settings, custom tools)
+  - `[[tools]]` - Tool configuration (execution settings for execute_sql, search_objects)
 - Example:
   ```toml
   [[sources]]
@@ -147,7 +149,6 @@ DBHub supports three configuration methods (in priority order):
   - Per-source settings: SSH tunnels, timeouts, SSL configuration
   - Query timeout: Defaults to 60 seconds for all non-SQLite connectors; override with `query_timeout = N` (seconds) in a `[[sources]]` block
   - Per-tool settings: `max_rows` (configured in `[[tools]]` section, not `[[sources]]`). This fork enforces read-only behavior via SQL validation; `readonly = false` is rejected.
-  - Custom tools: Define reusable, parameterized SQL operations
   - Path expansion for `~/` in file paths
   - Automatic password redaction in logs
   - First source is the default database
@@ -166,6 +167,7 @@ DBHub supports three configuration methods (in priority order):
 - `--dsn`: Database connection string
 - `--transport`: `stdio` (default) or `http` for streamable HTTP transport (endpoint: `/mcp`)
 - `--port`: HTTP server port (default: 8080)
+- `--bind`: HTTP bind address (default: `127.0.0.1`; use `0.0.0.0` for network access). Override via `BIND_ADDRESS` env.
 - `--config`: Path to TOML configuration file
 - `--demo`: Use bundled SQLite employee database
 - `--output-format`: Result file format for local result files: `csv` (default), `json`, or `markdown`
@@ -183,7 +185,7 @@ DBHub supports three configuration methods (in priority order):
 ## Database Connectors
 
 - Add new connectors in `src/connectors/{db-type}/index.ts`
-- Implement the `Connector` and `DSNParser` interfaces from `src/interfaces/connector.ts`
+- Implement the `Connector` and `DSNParser` interfaces from `src/connectors/interface.ts`
 - Register connector with `ConnectorRegistry.register(connector)`
 - DSN Examples:
   - PostgreSQL: `postgres://user:password@localhost:5432/dbname?sslmode=disable`

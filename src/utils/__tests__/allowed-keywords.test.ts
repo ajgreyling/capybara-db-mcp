@@ -86,4 +86,38 @@ describe("isReadOnlySQL", () => {
       expect(isReadOnlySQL("SELECT * FROM users", "postgres")).toBe(true);
     });
   });
+
+  describe("bypass prevention (CTE/EXPLAIN/INTO OUTFILE)", () => {
+    it("should reject WITH CTE containing DELETE", () => {
+      expect(isReadOnlySQL("WITH x AS (DELETE FROM users RETURNING id) SELECT * FROM x", "postgres")).toBe(false);
+    });
+
+    it("should reject WITH CTE containing INSERT", () => {
+      expect(isReadOnlySQL("WITH x AS (INSERT INTO t SELECT 1 RETURNING *) SELECT * FROM x", "postgres")).toBe(false);
+    });
+
+    it("should reject EXPLAIN ANALYZE followed by write", () => {
+      expect(isReadOnlySQL("EXPLAIN ANALYZE DELETE FROM users WHERE id = 1", "postgres")).toBe(false);
+    });
+
+    it("should reject EXPLAIN followed by UPDATE", () => {
+      expect(isReadOnlySQL("EXPLAIN UPDATE users SET name = 'x'", "postgres")).toBe(false);
+    });
+
+    it("should allow EXPLAIN SELECT", () => {
+      expect(isReadOnlySQL("EXPLAIN SELECT * FROM users", "postgres")).toBe(true);
+    });
+
+    it("should reject SELECT INTO OUTFILE for MySQL", () => {
+      expect(isReadOnlySQL("SELECT * FROM users INTO OUTFILE '/tmp/u.csv'", "mysql")).toBe(false);
+    });
+
+    it("should reject SELECT INTO DUMPFILE for MySQL", () => {
+      expect(isReadOnlySQL("SELECT * FROM users INTO DUMPFILE '/tmp/u.bin'", "mysql")).toBe(false);
+    });
+
+    it("should allow plain SELECT for MySQL", () => {
+      expect(isReadOnlySQL("SELECT * FROM users", "mysql")).toBe(true);
+    });
+  });
 });

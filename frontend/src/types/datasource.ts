@@ -18,7 +18,6 @@ export interface Tool {
   name: string;
   description: string;
   parameters: ToolParameter[];
-  statement?: string;
   readonly?: boolean;
   max_rows?: number;
 }

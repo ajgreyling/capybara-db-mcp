@@ -112,7 +112,7 @@ describe("GET /api/requests - Integration Tests", () => {
       expect(returned.id).toBe("test-id");
       expect(returned.sourceId).toBe("prod_db");
       expect(returned.toolName).toBe("execute_sql_prod_db");
-      expect(returned.sql).toBe("SELECT * FROM users");
+      expect(returned.sql).toBe("[redacted]");
       expect(returned.durationMs).toBe(150);
       expect(returned.client).toBe("claude-desktop");
       expect(returned.success).toBe(true);
@@ -263,7 +263,7 @@ describe("GET /api/requests - Integration Tests", () => {
 
       expect(data.requests).toHaveLength(1);
       expect(data.requests[0].success).toBe(false);
-      expect(data.requests[0].error).toBe("Table 'users' not found");
+      expect(data.requests[0].error).toBe("[redacted]");
     });
 
     it("should not include error field for successful requests", async () => {
@@ -330,10 +330,9 @@ describe("GET /api/requests - Integration Tests", () => {
         expect(r.error).toBeUndefined();
       });
 
-      // Verify failed requests have error field
+      // Verify failed requests have redacted error field
       failedReqs.forEach((r: Request) => {
-        expect(r.error).toBeDefined();
-        expect(typeof r.error).toBe("string");
+        expect(r.error).toBe("[redacted]");
       });
     });
 
@@ -361,10 +360,11 @@ describe("GET /api/requests - Integration Tests", () => {
       expect(data.requests).toHaveLength(4);
       const returnedErrors = data.requests.map((r: Request) => r.error);
 
-      errorMessages.forEach((errorMsg) => {
-        expect(returnedErrors).toContain(errorMsg);
+      returnedErrors.forEach((err) => {
+        expect(err).toBe("[redacted]");
       });
     });
+
   });
 
   describe("Response Format", () => {
@@ -422,9 +422,7 @@ describe("GET /api/requests - Integration Tests", () => {
       const response = await fetch(`${BASE_URL}/api/requests`);
       const data = await response.json();
 
-      expect(data.requests[0].sql).toBe(
-        "SELECT * FROM users WHERE name = 'O''Brien' AND role = \"admin\""
-      );
+      expect(data.requests[0].sql).toBe("[redacted]");
     });
 
     it("should handle requests with very long SQL queries", async () => {
@@ -434,7 +432,7 @@ describe("GET /api/requests - Integration Tests", () => {
       const response = await fetch(`${BASE_URL}/api/requests`);
       const data = await response.json();
 
-      expect(data.requests[0].sql).toBe(longSql);
+      expect(data.requests[0].sql).toBe("[redacted]");
     });
 
     it("should handle various client identifiers", async () => {

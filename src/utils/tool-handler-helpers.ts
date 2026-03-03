@@ -47,13 +47,12 @@ export function createReadonlyViolationMessage(
   return `Tool '${toolName}' cannot execute in readonly mode for source '${sourceId}'. Only read-only SQL operations are allowed: ${allowedKeywords[connectorType]?.join(", ") || "none"}`;
 }
 
+/** Sentinel for redacted sensitive fields in request telemetry (PII-safe). */
+const REDACTED = "[redacted]";
+
 /**
- * Track a tool request in the request store
- * @param metadata Request metadata (sourceId, toolName, sql)
- * @param startTime Request start timestamp
- * @param extra MCP extra context for client identification
- * @param success Whether the request succeeded
- * @param error Optional error message
+ * Track a tool request in the request store.
+ * SQL and error text are redacted to prevent exposure via API.
  */
 export function trackToolRequest(
   metadata: RequestMetadata,
@@ -67,11 +66,11 @@ export function trackToolRequest(
     timestamp: new Date().toISOString(),
     sourceId: metadata.sourceId,
     toolName: metadata.toolName,
-    sql: metadata.sql,
+    sql: REDACTED,
     durationMs: Date.now() - startTime,
     client: getClientIdentifier(extra),
     success,
-    error,
+    error: error !== undefined ? REDACTED : undefined,
   });
 }
 

@@ -57,22 +57,6 @@ DBHub provides two built-in tools:
 | `execute_sql` | Execute SQL queries with transaction support, read-only mode, and row limiting |
 | `search_objects` | Search and explore schemas, tables, columns, procedures, and indexes |
 
-Beyond built-in tools, you can define [custom tools](/tools/custom-tools)—reusable, parameterized SQL operations with type validation. Useful for giving AI models well-defined operations instead of open-ended SQL access.
-
-```toml
-[[tools]]
-name = "get_active_users"
-description = "Get active users by department"
-source = "prod"
-statement = "SELECT * FROM users WHERE department = $1 AND active = true"
-
-[[tools.parameters]]
-name = "department"
-type = "string"
-description = "Department name"
-allowed_values = ["engineering", "sales", "support"]
-```
-
 ## Token Efficiency
 
 Token efficiency is DBHub's key design objective. This matters for two reasons:
@@ -158,9 +142,7 @@ DBHub supports advanced settings via TOML configuration:
 
 DBHub includes a [built-in web interface](/workbench/overview) with two main features:
 
-1. **Tool Execution**: Run database tools directly from your browser—useful for testing and debugging without an MCP client. Custom tools render as constrained forms with validated inputs.
-
-    ![workbench](https://raw.githubusercontent.com/bytebase/dbhub/main/docs/images/workbench/custom-tool.webp)
+1. **Tool Execution**: Run database tools directly from your browser—useful for testing and debugging without an MCP client.
 
 1. **Request Traces**: Inspect MCP requests to understand how AI agents interact with DBHub.
 

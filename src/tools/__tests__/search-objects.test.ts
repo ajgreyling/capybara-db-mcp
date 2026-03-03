@@ -109,7 +109,7 @@ describe('search_database_objects tool', () => {
       expect(parsed.data.truncated).toBe(true);
     });
 
-    it('should return summary with table counts', async () => {
+    it('should return names only (PII-safe; summary/full disabled)', async () => {
       vi.mocked(mockConnector.getTables).mockResolvedValue(['users', 'orders']);
 
       const handler = createSearchDatabaseObjectsToolHandler();
@@ -117,16 +117,14 @@ describe('search_database_objects tool', () => {
         {
           object_type: 'schema',
           pattern: 'public',
-          detail_level: 'summary',
+          detail_level: 'names',
         },
         null
       );
 
       const parsed = parseToolResponse(result);
-      expect(parsed.data.results[0]).toEqual({
-        name: 'public',
-        table_count: 2,
-      });
+      expect(parsed.data.results[0]).toEqual({ name: 'public' });
+      expect(parsed.data.results[0]).not.toHaveProperty('table_count');
     });
   });
 
@@ -187,82 +185,44 @@ describe('search_database_objects tool', () => {
       expect(mockConnector.getTables).not.toHaveBeenCalledWith('private');
     });
 
-    it('should return summary with metadata', async () => {
-      const mockColumns: TableColumn[] = [
-        { column_name: 'id', data_type: 'INTEGER', is_nullable: 'NO', column_default: null },
-        { column_name: 'name', data_type: 'TEXT', is_nullable: 'YES', column_default: null },
-      ];
-
-      vi.mocked(mockConnector.getTableSchema).mockResolvedValue(mockColumns);
-      vi.mocked(mockConnector.executeSQL).mockResolvedValue({ rows: [{ count: 100 }] });
+    it('should return names only (PII-safe; no column_count/row_count)', async () => {
+      vi.mocked(mockConnector.getTableSchema).mockResolvedValue([]);
+      vi.mocked(mockConnector.executeSQL).mockResolvedValue({ rows: [] });
 
       const handler = createSearchDatabaseObjectsToolHandler();
       const result = await handler(
         {
           object_type: 'table',
           pattern: 'users',
-          detail_level: 'summary',
+          detail_level: 'names',
         },
         null
       );
 
       const parsed = parseToolResponse(result);
-      expect(parsed.data.results[0]).toMatchObject({
-        name: 'users',
-        schema: 'public',
-        column_count: 2,
-        row_count: 100,
-      });
+      expect(parsed.data.results[0]).toEqual({ name: 'users', schema: 'public' });
+      expect(parsed.data.results[0]).not.toHaveProperty('column_count');
+      expect(parsed.data.results[0]).not.toHaveProperty('row_count');
     });
 
-    it('should return full details with columns and indexes', async () => {
-      const mockColumns: TableColumn[] = [
-        { column_name: 'id', data_type: 'INTEGER', is_nullable: 'NO', column_default: null },
-      ];
-
-      const mockIndexes: TableIndex[] = [
-        {
-          index_name: 'users_pkey',
-          column_names: ['id'],
-          is_unique: true,
-          is_primary: true,
-        },
-      ];
-
-      vi.mocked(mockConnector.getTableSchema).mockResolvedValue(mockColumns);
-      vi.mocked(mockConnector.getTableIndexes).mockResolvedValue(mockIndexes);
-      vi.mocked(mockConnector.executeSQL).mockResolvedValue({ rows: [{ count: 50 }] });
+    it('should return names only (PII-safe; no columns/indexes metadata)', async () => {
+      vi.mocked(mockConnector.getTableSchema).mockResolvedValue([]);
+      vi.mocked(mockConnector.getTableIndexes).mockResolvedValue([]);
 
       const handler = createSearchDatabaseObjectsToolHandler();
       const result = await handler(
         {
           object_type: 'table',
           pattern: 'users',
-          detail_level: 'full',
+          detail_level: 'names',
         },
         null
       );
 
       const parsed = parseToolResponse(result);
-      expect(parsed.data.results[0]).toMatchObject({
-        name: 'users',
-        columns: [
-          {
-            name: 'id',
-            type: 'INTEGER',
-            nullable: false,
-            default: null,
-          },
-        ],
-        indexes: [
-          {
-            name: 'users_pkey',
-            columns: ['id'],
-            unique: true,
-            primary: true,
-          },
-        ],
-      });
+      expect(parsed.data.results[0]).toEqual({ name: 'users', schema: 'public' });
+      expect(parsed.data.results[0]).not.toHaveProperty('columns');
+      expect(parsed.data.results[0]).not.toHaveProperty('indexes');
     });
   });
 
@@ -309,7 +269,7 @@ describe('search_database_objects tool', () => {
       ]);
     });
 
-    it('should return column details in summary level', async () => {
+    it('should return names only (PII-safe; no type/nullable/default)', async () => {
       const columns: TableColumn[] = [
         { column_name: 'email', data_type: 'VARCHAR(255)', is_nullable: 'YES', column_default: null },
       ];
@@ -321,7 +281,7 @@ describe('search_database_objects tool', () => {
         {
           object_type: 'column',
           pattern: 'email',
-          detail_level: 'summary',
+          detail_level: 'names',
         },
         null
       );
@@ -331,10 +291,10 @@ describe('search_database_objects tool', () => {
         name: 'email',
         table: 'users',
         schema: 'public',
-        type: 'VARCHAR(255)',
-        nullable: true,
-        default: null,
       });
+      expect(parsed.data.results[0]).not.toHaveProperty('type');
+      expect(parsed.data.results[0]).not.toHaveProperty('nullable');
+      expect(parsed.data.results[0]).not.toHaveProperty('default');
     });
   });
 
@@ -367,7 +327,7 @@ describe('search_database_objects tool', () => {
       ]);
     });
 
-    it('should return procedure details in summary level', async () => {
+    it('should return names only (PII-safe; no type/return_type)', async () => {
       vi.mocked(mockConnector.getStoredProcedureDetail).mockResolvedValue({
         procedure_name: 'get_user',
         procedure_type: 'function',
@@ -381,18 +341,15 @@ describe('search_database_objects tool', () => {
         {
           object_type: 'procedure',
           pattern: 'get_user',
-          detail_level: 'summary',
+          detail_level: 'names',
         },
         null
       );
 
       const parsed = parseToolResponse(result);
-      expect(parsed.data.results[0]).toMatchObject({
-        name: 'get_user',
-        schema: 'public',
-        type: 'function',
-        return_type: 'TABLE',
-      });
+      expect(parsed.data.results[0]).toEqual({ name: 'get_user', schema: 'public' });
+      expect(parsed.data.results[0]).not.toHaveProperty('type');
+      expect(parsed.data.results[0]).not.toHaveProperty('return_type');
     });
   });
 
@@ -451,7 +408,7 @@ describe('search_database_objects tool', () => {
       ]);
     });
 
-    it('should return index details in summary level', async () => {
+    it('should return names only (PII-safe; no columns/unique/primary)', async () => {
       const indexes: TableIndex[] = [
         {
           index_name: 'users_email_idx',
@@ -468,7 +425,7 @@ describe('search_database_objects tool', () => {
         {
           object_type: 'index',
           pattern: '%email%',
-          detail_level: 'summary',
+          detail_level: 'names',
         },
         null
       );
@@ -478,10 +435,10 @@ describe('search_database_objects tool', () => {
         name: 'users_email_idx',
         table: 'users',
         schema: 'public',
-        columns: ['email'],
-        unique: true,
-        primary: false,
       });
+      expect(parsed.data.results[0]).not.toHaveProperty('columns');
+      expect(parsed.data.results[0]).not.toHaveProperty('unique');
+      expect(parsed.data.results[0]).not.toHaveProperty('primary');
     });
   });
 

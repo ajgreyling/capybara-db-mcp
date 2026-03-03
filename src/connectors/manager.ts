@@ -217,10 +217,8 @@ export class ConnectorManager {
     if (connector.id !== 'sqlite') {
       config.queryTimeoutSeconds = source.query_timeout ?? DEFAULT_QUERY_TIMEOUT_SECONDS;
     }
-    // Pass readonly flag for SDK-level enforcement (PostgreSQL, SQLite)
-    if (source.readonly !== undefined) {
-      config.readonly = source.readonly;
-    }
+    // This fork is unconditionally read-only: enforce at connector level (PostgreSQL, SQLite)
+    config.readonly = true;
     // Pass default schema (PostgreSQL: sets search_path)
     if (source.schema !== undefined) {
       config.schema = source.schema;

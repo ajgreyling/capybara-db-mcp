@@ -173,32 +173,31 @@ function validateToolsConfig(
       );
     }
 
-    // Validate based on tool type (built-in vs custom)
+    // Only built-in tools are supported
     const isBuiltin = (BUILTIN_TOOLS as readonly string[]).includes(tool.name);
     const isExecuteSql = tool.name === BUILTIN_TOOL_EXECUTE_SQL;
 
-    if (isBuiltin) {
-      // Built-in tools should NOT have custom tool fields
-      if (tool.description || tool.statement || tool.parameters) {
-        throw new Error(
-          `Configuration file ${configPath}: built-in tool '${tool.name}' cannot have description, statement, or parameters fields`
-        );
-      }
+    if (!isBuiltin) {
+      throw new Error(
+        `Configuration file ${configPath}: unknown tool '${tool.name}'. ` +
+          `Valid tools: ${BUILTIN_TOOLS.join(", ")}. Custom tools are not supported.`
+      );
+    }
 
-      // Only execute_sql can have readonly and max_rows
-      if (!isExecuteSql && (tool.readonly !== undefined || tool.max_rows !== undefined)) {
-        throw new Error(
-          `Configuration file ${configPath}: tool '${tool.name}' cannot have readonly or max_rows fields ` +
-            `(these are only valid for ${BUILTIN_TOOL_EXECUTE_SQL} tool)`
-        );
-      }
-    } else {
-      // Custom tools MUST have description and statement
-      if (!tool.description || !tool.statement) {
-        throw new Error(
-          `Configuration file ${configPath}: custom tool '${tool.name}' must have 'description' and 'statement' fields`
-        );
-      }
+    // Built-in tools should NOT have custom tool fields
+    const toolAny = tool as Record<string, unknown>;
+    if (toolAny.description || toolAny.statement || toolAny.parameters) {
+      throw new Error(
+        `Configuration file ${configPath}: tool '${tool.name}' cannot have description, statement, or parameters fields`
+      );
+    }
+
+    // Only execute_sql can have readonly and max_rows
+    if (!isExecuteSql && (tool.readonly !== undefined || tool.max_rows !== undefined)) {
+      throw new Error(
+        `Configuration file ${configPath}: tool '${tool.name}' cannot have readonly or max_rows fields ` +
+          `(these are only valid for ${BUILTIN_TOOL_EXECUTE_SQL} tool)`
+      );
     }
 
     // Validate max_rows if provided

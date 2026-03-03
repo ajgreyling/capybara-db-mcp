@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ConnectorManager } from "../connectors/manager.js";
-import { createToolSuccessResponse, createToolErrorResponse } from "../utils/response-formatter.js";
+import { createToolSuccessResponse, createToolErrorResponse, createGenericToolErrorResponse } from "../utils/response-formatter.js";
 import type { Connector } from "../connectors/interface.js";
 import { quoteQualifiedIdentifier } from "../utils/identifier-quoter.js";
 import {
@@ -40,9 +40,9 @@ export const searchDatabaseObjectsSchema = {
     .optional()
     .describe("Filter to table (requires schema; column/index only)"),
   detail_level: z
-    .enum(["names", "summary", "full"])
+    .enum(["names"])
     .default("names")
-    .describe("Detail: names (minimal), summary (metadata), full (all)"),
+    .describe("Detail: names only (PII-safe; summary/full disabled)"),
   limit: z
     .number()
     .int()
@@ -475,6 +475,9 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
       limit: number;
     };
 
+    // PII safety: only names output permitted; summary/full disabled
+    const effectiveDetailLevel: DetailLevel = "names";
+
     const startTime = Date.now();
     const effectiveSourceId = getEffectiveSourceId(sourceId);
     let success = true;
@@ -516,26 +519,26 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
 
       let results: any[] = [];
 
-      // Route to appropriate search function
+      // Route to appropriate search function (effectiveDetailLevel is always "names" for PII safety)
       switch (object_type) {
         case "schema":
           if (effectiveSchema) {
-            results = await searchSchemas(connector, effectiveSchema, detail_level, limit);
+            results = await searchSchemas(connector, effectiveSchema, effectiveDetailLevel, limit);
           } else {
-            results = await searchSchemas(connector, pattern, detail_level, limit);
+            results = await searchSchemas(connector, pattern, effectiveDetailLevel, limit);
           }
           break;
         case "table":
-          results = await searchTables(connector, pattern, effectiveSchema, detail_level, limit);
+          results = await searchTables(connector, pattern, effectiveSchema, effectiveDetailLevel, limit);
           break;
         case "column":
-          results = await searchColumns(connector, pattern, effectiveSchema, table, detail_level, limit);
+          results = await searchColumns(connector, pattern, effectiveSchema, table, effectiveDetailLevel, limit);
           break;
         case "procedure":
-          results = await searchProcedures(connector, pattern, effectiveSchema, detail_level, limit);
+          results = await searchProcedures(connector, pattern, effectiveSchema, effectiveDetailLevel, limit);
           break;
         case "index":
-          results = await searchIndexes(connector, pattern, effectiveSchema, table, detail_level, limit);
+          results = await searchIndexes(connector, pattern, effectiveSchema, table, effectiveDetailLevel, limit);
           break;
         default:
           success = false;
@@ -548,18 +551,16 @@ export function createSearchDatabaseObjectsToolHandler(sourceId?: string) {
         pattern,
         schema: effectiveSchema,
         table,
-        detail_level,
+        detail_level: effectiveDetailLevel,
         count: results.length,
         results,
         truncated: results.length === limit,
       });
     } catch (error) {
       success = false;
-      errorMessage = (error as Error).message;
-      return createToolErrorResponse(
-        `Error searching database objects: ${errorMessage}`,
-        "SEARCH_ERROR"
-      );
+      console.error(`[search_objects] Search failed`);
+      errorMessage = "Search failed. See server logs for details.";
+      return createGenericToolErrorResponse("SEARCH_ERROR");
     } finally {
       // Track the request
       trackToolRequest(

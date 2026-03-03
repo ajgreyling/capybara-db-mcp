@@ -104,7 +104,7 @@ describe('execute-sql tool', () => {
       expect(result.isError).toBe(true);
       const parsedResult = parseToolResponse(result);
       expect(parsedResult.success).toBe(false);
-      expect(parsedResult.error).toBe('Database error');
+      expect(parsedResult.error).toBe('Execution failed. See server logs for details.');
       expect(parsedResult.code).toBe('EXECUTION_ERROR');
     });
   });

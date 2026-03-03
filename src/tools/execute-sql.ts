@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ConnectorManager } from "../connectors/manager.js";
-import { createPiiSafeToolResponse, createToolErrorResponse, truncateForLLM } from "../utils/response-formatter.js";
+import { createPiiSafeToolResponse, createToolErrorResponse, createGenericToolErrorResponse } from "../utils/response-formatter.js";
 import { writeResultFile } from "../utils/result-writer.js";
 import { getOutputFormat } from "../config/output-format.js";
 import { isReadOnlySQL, allowedKeywords } from "../utils/allowed-keywords.js";
@@ -86,10 +86,9 @@ export function createExecuteSqlToolHandler(sourceId?: string) {
       return createPiiSafeToolResponse();
     } catch (error) {
       success = false;
-      const fullError = (error as Error).message;
-      console.error(`[execute_sql] Execution error: ${fullError}`);
-      errorMessage = truncateForLLM(fullError);
-      return createToolErrorResponse(errorMessage, "EXECUTION_ERROR");
+      console.error(`[execute_sql] Execution failed`);
+      errorMessage = "Execution failed. See server logs for details.";
+      return createGenericToolErrorResponse("EXECUTION_ERROR");
     } finally {
       // Track the request
       trackToolRequest(

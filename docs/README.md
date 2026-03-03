@@ -26,8 +26,14 @@ This design reduces the likelihood of transmitting result data to an LLM, but it
 ## Controls (risk-reduction)
 
 - **Read-only enforcement**: SQL validation is intended to restrict execution to read-only statements; it reduces the risk of accidental writes but does not replace database-level permissions or RBAC.
-- **Output isolation**: Query results are written to `.safe-sql-results/` and opened in the editor; tool responses are formatted to avoid including result sets (including file paths, row data, row counts, and column names).
-- **Error response hardening**: Tool error payloads are formatted to avoid including SQL statements and parameter values; diagnostic details are logged locally and database error messages are truncated.
+- **Output isolation**: Query results are written to `.safe-sql-results/` and opened in the editor; tool responses return only success/failure metadata (no file paths, row data, row counts, or column names).
+- **Generic errors only**: Execution and search errors return generic messages (e.g. "Execution failed. See server logs for details."); no SQL, parameter values, or database error text are returned to the client.
+- **Log redaction**: Stderr logs never include SQL statements or parameter values; only tool name and status are logged.
+- **search_objects names only**: Schema exploration returns object names only; summary/full metadata (row counts, column types, definitions) is disabled to avoid leaking schema-derived data.
+- **Request telemetry redaction**: `/api/requests` redacts SQL and error text; `trackToolRequest` stores only `[redacted]` for those fields.
+- **HTTP defaults**: Bind address defaults to `127.0.0.1`; CORS uses a strict allowlist.
+
+For information flow diagrams and detailed PII safety mechanisms, see [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview documentation locally:
 

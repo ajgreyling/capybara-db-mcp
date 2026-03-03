@@ -51,10 +51,9 @@ DBHub brings powerful database capabilities to AI coding assistants:
 
 ### MCP Tools
 
-DBHub provides AI assistants with direct database access through three core tools:
+DBHub provides AI assistants with direct database access through two core tools:
 - **[execute_sql](/tools/execute-sql)**: Run queries with transaction support and safety controls
 - **[search_objects](/tools/search-objects)**: Explore schemas, tables, columns, indexes, and procedures
-- **[Custom Tools](/tools/custom-tools)**: Define reusable, parameterized SQL operations
 
 ### Workbench
 
@@ -84,7 +83,6 @@ flowchart TB
         subgraph Tools["MCP Tools"]
             ES["execute_sql"]
             SO["search_objects"]
-            CT["custom tools"]
         end
     end
 

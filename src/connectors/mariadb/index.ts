@@ -531,9 +531,7 @@ export class MariaDBConnector implements Connector {
         try {
           results = await conn.query(processedSQL, parameters);
         } catch (error) {
-          console.error(`[MariaDB executeSQL] ERROR: ${(error as Error).message}`);
-          console.error(`[MariaDB executeSQL] SQL: ${processedSQL}`);
-          console.error(`[MariaDB executeSQL] Parameters: ${JSON.stringify(parameters)}`);
+          console.error(`[MariaDB executeSQL] Execution failed`);
           throw error;
         }
       } else {

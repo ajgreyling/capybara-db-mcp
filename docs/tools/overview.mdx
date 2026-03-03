@@ -8,7 +8,6 @@ title: "Overview"
 | ----------- | ------------- | ------------------------------------------------------------------- |
 | Execute SQL | `execute_sql` or `execute_sql_{id}` | Execute single or multiple SQL statements (separated by semicolons) |
 | Search Objects | `search_objects` or `search_objects_{id}` | Search and list database objects (schemas, tables, columns, procedures, indexes) with pattern matching and token-efficient progressive disclosure |
-| Custom Tools | User-defined names | Define reusable, parameterized SQL operations in your `dbhub.toml` configuration file |
 
 ## Tool Configuration
 
@@ -92,36 +91,6 @@ name = "search_objects"
 source = "analytics"
 ```
 
-### Custom Tools
-
-You can also define custom tools alongside built-in tools:
-
-```toml
-[[sources]]
-id = "production"
-dsn = "postgres://..."
-
-# Built-in tools
-[[tools]]
-name = "search_objects"
-source = "production"
-
-# Custom tool - no execute_sql for unrestricted queries
-[[tools]]
-name = "get_active_users"
-source = "production"
-description = "Get list of active users"
-statement = "SELECT id, name, email FROM users WHERE status = 'active' LIMIT $1"
-
-[[tools.parameters]]
-name = "limit"
-type = "integer"
-description = "Maximum number of users to return"
-default = 10
-```
-
-This approach gives you fine-grained control: disable general SQL execution while providing specific, safe operations through custom tools.
-
 ## Tool Naming
 
 The tool name varies based on your configuration:
@@ -156,14 +125,11 @@ Special characters in source IDs (hyphens, dots, etc.) are converted to undersco
 
 ## Next Steps
 
-<CardGroup cols={3}>
+<CardGroup cols={2}>
   <Card title="Execute SQL" icon="play" href="/tools/execute-sql">
     Execute SQL queries and statements on your database
   </Card>
   <Card title="Search Objects" icon="magnifying-glass" href="/tools/search-objects">
     Search and explore database schemas, tables, and objects
-  </Card>
-  <Card title="Custom Tools" icon="wrench" href="/tools/custom-tools">
-    Create reusable parameterized SQL operations
   </Card>
 </CardGroup>

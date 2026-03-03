@@ -415,9 +415,7 @@ export class SQLiteConnector implements Connector {
               const rows = this.db.prepare(processedStatement).all(...parameters);
               return { rows, rowCount: rows.length };
             } catch (error) {
-              console.error(`[SQLite executeSQL] ERROR: ${(error as Error).message}`);
-              console.error(`[SQLite executeSQL] SQL: ${processedStatement}`);
-              console.error(`[SQLite executeSQL] Parameters: ${JSON.stringify(parameters)}`);
+              console.error(`[SQLite executeSQL] Execution failed`);
               throw error;
             }
           } else {
@@ -431,9 +429,7 @@ export class SQLiteConnector implements Connector {
             try {
               result = this.db.prepare(processedStatement).run(...parameters);
             } catch (error) {
-              console.error(`[SQLite executeSQL] ERROR: ${(error as Error).message}`);
-              console.error(`[SQLite executeSQL] SQL: ${processedStatement}`);
-              console.error(`[SQLite executeSQL] Parameters: ${JSON.stringify(parameters)}`);
+              console.error(`[SQLite executeSQL] Execution failed`);
               throw error;
             }
           } else {

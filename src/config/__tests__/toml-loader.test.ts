@@ -1168,8 +1168,8 @@ database = ":memory:"
     });
   });
 
-  describe('Custom Tool Configuration', () => {
-    it('should accept custom tool with readonly and max_rows', () => {
+  describe('Tool configuration (built-in only)', () => {
+    it('should throw for unknown tool name', () => {
       const tomlContent = `
 [[sources]]
 id = "test_db"
@@ -1180,132 +1180,29 @@ name = "get_active_users"
 source = "test_db"
 description = "Get all active users"
 statement = "SELECT * FROM users WHERE active = true"
-readonly = true
-max_rows = 100
 `;
       fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);
 
-      const result = loadTomlConfig();
-
-      expect(result).toBeTruthy();
-      expect(result?.tools).toBeDefined();
-      expect(result?.tools).toHaveLength(1);
-      expect(result?.tools![0]).toMatchObject({
-        name: 'get_active_users',
-        source: 'test_db',
-        description: 'Get all active users',
-        statement: 'SELECT * FROM users WHERE active = true',
-        readonly: true,
-        max_rows: 100,
-      });
+      expect(() => loadTomlConfig()).toThrow(/unknown tool 'get_active_users'.*Valid tools: execute_sql, search_objects.*Custom tools are not supported/);
     });
 
-    it('should accept custom tool with readonly only', () => {
+    it('should throw for built-in tool with description field', () => {
       const tomlContent = `
 [[sources]]
 id = "test_db"
 dsn = "postgres://user:pass@localhost:5432/testdb"
 
 [[tools]]
-name = "list_departments"
+name = "execute_sql"
 source = "test_db"
-description = "List all departments"
-statement = "SELECT * FROM departments"
-readonly = true
+description = "Not allowed"
 `;
       fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);
 
-      const result = loadTomlConfig();
-
-      expect(result?.tools).toHaveLength(1);
-      expect(result?.tools![0]).toMatchObject({
-        name: 'list_departments',
-        readonly: true,
-      });
-      expect(result?.tools![0].max_rows).toBeUndefined();
+      expect(() => loadTomlConfig()).toThrow(/cannot have description, statement, or parameters fields/);
     });
 
-    it('should accept custom tool with max_rows only', () => {
-      const tomlContent = `
-[[sources]]
-id = "test_db"
-dsn = "postgres://user:pass@localhost:5432/testdb"
-
-[[tools]]
-name = "search_logs"
-source = "test_db"
-description = "Search application logs"
-statement = "SELECT * FROM logs WHERE level = 'ERROR'"
-max_rows = 500
-`;
-      fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);
-
-      const result = loadTomlConfig();
-
-      expect(result?.tools).toHaveLength(1);
-      expect(result?.tools![0]).toMatchObject({
-        name: 'search_logs',
-        max_rows: 500,
-      });
-      expect(result?.tools![0].readonly).toBeUndefined();
-    });
-
-    it('should accept custom tool without readonly or max_rows', () => {
-      const tomlContent = `
-[[sources]]
-id = "test_db"
-dsn = "postgres://user:pass@localhost:5432/testdb"
-
-[[tools]]
-name = "update_status"
-source = "test_db"
-description = "Update user status"
-statement = "UPDATE users SET status = $1 WHERE id = $2"
-
-[[tools.parameters]]
-name = "status"
-type = "string"
-description = "New status"
-required = true
-
-[[tools.parameters]]
-name = "user_id"
-type = "integer"
-description = "User ID"
-required = true
-`;
-      fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);
-
-      const result = loadTomlConfig();
-
-      expect(result?.tools).toHaveLength(1);
-      expect(result?.tools![0]).toMatchObject({
-        name: 'update_status',
-        description: 'Update user status',
-      });
-      expect(result?.tools![0].readonly).toBeUndefined();
-      expect(result?.tools![0].max_rows).toBeUndefined();
-    });
-
-    it('should throw error for custom tool with invalid readonly type', () => {
-      const tomlContent = `
-[[sources]]
-id = "test_db"
-dsn = "postgres://user:pass@localhost:5432/testdb"
-
-[[tools]]
-name = "test_tool"
-source = "test_db"
-description = "Test tool"
-statement = "SELECT 1"
-readonly = "yes"
-`;
-      fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);
-
-      expect(() => loadTomlConfig()).toThrow('invalid readonly');
-    });
-
-    it('should throw error for tool with readonly = false (fork is unconditionally read-only)', () => {
+    it('should throw for tool with readonly = false (fork is unconditionally read-only)', () => {
       const tomlContent = `
 [[sources]]
 id = "test_db"
@@ -1321,17 +1218,15 @@ readonly = false
       expect(() => loadTomlConfig()).toThrow(/readonly = false.*unconditionally read-only/);
     });
 
-    it('should throw error for custom tool with invalid max_rows', () => {
+    it('should throw for execute_sql with invalid max_rows', () => {
       const tomlContent = `
 [[sources]]
 id = "test_db"
 dsn = "postgres://user:pass@localhost:5432/testdb"
 
 [[tools]]
-name = "test_tool"
+name = "execute_sql"
 source = "test_db"
-description = "Test tool"
-statement = "SELECT 1"
 max_rows = -50
 `;
       fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);
@@ -1339,17 +1234,15 @@ max_rows = -50
       expect(() => loadTomlConfig()).toThrow('invalid max_rows');
     });
 
-    it('should throw error for custom tool with zero max_rows', () => {
+    it('should throw for execute_sql with zero max_rows', () => {
       const tomlContent = `
 [[sources]]
 id = "test_db"
 dsn = "postgres://user:pass@localhost:5432/testdb"
 
 [[tools]]
-name = "test_tool"
+name = "execute_sql"
 source = "test_db"
-description = "Test tool"
-statement = "SELECT 1"
 max_rows = 0
 `;
       fs.writeFileSync(path.join(tempDir, 'dbhub.toml'), tomlContent);

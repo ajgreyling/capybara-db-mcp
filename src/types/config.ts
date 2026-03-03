@@ -51,18 +51,6 @@ export interface SourceConfig extends ConnectionParams, SSHConfig {
 }
 
 /**
- * Custom tool parameter configuration
- */
-export interface ParameterConfig {
-  name: string;
-  type: "string" | "integer" | "float" | "boolean" | "array";
-  description: string;
-  required?: boolean; // Defaults to true
-  default?: any; // Makes parameter optional if set
-  allowed_values?: any[]; // Enum constraint
-}
-
-/**
  * Built-in tool configuration for execute_sql
  */
 export interface ExecuteSqlToolConfig {
@@ -81,22 +69,9 @@ export interface SearchObjectsToolConfig {
 }
 
 /**
- * Custom tool configuration
+ * Tool configuration (built-in tools only)
  */
-export interface CustomToolConfig {
-  name: string; // Must not be "execute_sql" or "search_objects"
-  source: string;
-  description: string;
-  statement: string;
-  parameters?: ParameterConfig[];
-  readonly?: boolean;
-  max_rows?: number;
-}
-
-/**
- * Unified tool configuration (discriminated union)
- */
-export type ToolConfig = ExecuteSqlToolConfig | SearchObjectsToolConfig | CustomToolConfig;
+export type ToolConfig = ExecuteSqlToolConfig | SearchObjectsToolConfig;
 
 /**
  * Complete TOML configuration file structure
